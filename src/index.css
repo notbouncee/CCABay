@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CCAxplore Design System - NTU CCA Platform
+   Colors from brand guidelines:
+   Navy: #1B1C92 → hsl(239, 70%, 34%)
+   Red: #D71440 → hsl(349, 83%, 46%)
+   Gold: #FFD000 → hsl(49, 100%, 50%)
+   White: #FFFFFF
+   Grey BG: #E8E8E8 → hsl(0, 0%, 91%)
+   Grey Text: #8C8C8C → hsl(0, 0%, 55%)
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 239 70% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 239 70% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 239 70% 15%;
+
+    --primary: 239 70% 34%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 91%;
+    --secondary-foreground: 239 70% 15%;
+
+    --muted: 0 0% 91%;
+    --muted-foreground: 0 0% 55%;
+
+    --accent: 349 83% 46%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 85%;
+    --input: 0 0% 85%;
+    --ring: 239 70% 34%;
+
+    --radius: 0.75rem;
+
+    --gold: 49 100% 50%;
+    --gold-foreground: 239 70% 15%;
+
+    --navy: 239 70% 34%;
+    --navy-light: 239 50% 50%;
+    --navy-dark: 239 70% 20%;
+
+    --sidebar-background: 239 70% 15%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 349 83% 46%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 239 50% 25%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 239 50% 25%;
+    --sidebar-ring: 349 83% 46%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-montserrat;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-anton;
+  }
+}
+
+@layer utilities {
+  .font-anton {
+    font-family: 'Anton', sans-serif;
+  }
+
+  .font-montserrat {
+    font-family: 'Montserrat', sans-serif;
+  }
+}

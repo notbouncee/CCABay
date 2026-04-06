@@ -1,0 +1,22 @@
+node_modules
+dist
+coverage
+
+.env
+.env.*
+!.env.example
+
+.venv
+
+# macOS
+.DS_Store
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Local data exports
+ccas-export-*.csv
+
+# Local editor config
+.vscode/
