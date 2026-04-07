@@ -7,7 +7,7 @@
 /* CCAxplore Design System - NTU CCA Platform
    Colors from brand guidelines:
    Navy: #1B1C92 → hsl(239, 70%, 34%)
-   Red: #D71440 → hsl(349, 83%, 46%)
+  Red: #D71440 → hsl(346, 83%, 46%)
    Gold: #FFD000 → hsl(49, 100%, 50%)
    White: #FFFFFF
    Grey BG: #E8E8E8 → hsl(0, 0%, 91%)
@@ -25,7 +25,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 239 70% 15%;
 
-    --primary: 239 70% 34%;
+    --primary: 237 61% 24%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 91%;
@@ -34,7 +34,7 @@
     --muted: 0 0% 91%;
     --muted-foreground: 0 0% 55%;
 
-    --accent: 349 83% 46%;
+    --accent: 346 83% 46%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
@@ -42,25 +42,25 @@
 
     --border: 0 0% 85%;
     --input: 0 0% 85%;
-    --ring: 239 70% 34%;
+    --ring: 237 61% 24%;
 
     --radius: 0.75rem;
 
     --gold: 49 100% 50%;
     --gold-foreground: 239 70% 15%;
 
-    --navy: 239 70% 34%;
-    --navy-light: 239 50% 50%;
+    --navy: 237 61% 24%;
+    --navy-light: 237 61% 24%;
     --navy-dark: 239 70% 20%;
 
     --sidebar-background: 239 70% 15%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 349 83% 46%;
+    --sidebar-primary: 346 83% 46%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 239 50% 25%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 239 50% 25%;
-    --sidebar-ring: 349 83% 46%;
+    --sidebar-ring: 346 83% 46%;
   }
 }
 

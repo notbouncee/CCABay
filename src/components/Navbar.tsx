@@ -1,101 +1,205 @@
-// Navbar component - Top navigation bar with CCABay branding and nav links
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { LogOut, Menu, X } from "lucide-react";
-import { useState } from "react";
+import {
+  Menu,
+  X,
+  LogOut,
+} from "lucide-react";
 
 const navLinks = [
   { name: "Home", path: "/" },
   { name: "Explore", path: "/explore" },
-  { name: "MatchMe", path: "/matchme" },
   { name: "Planner", path: "/planner" },
-  { name: "My Profile", path: "/profile" },
-  { name: "Saved CCAs", path: "/saved" },
+  { name: "MatchMe", path: "/matchme" },
 ];
 
-// Main navigation bar component
 const Navbar: React.FC = () => {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const iconClass = "h-8 w-8 object-contain transition-opacity duration-200 hover:opacity-100 active:opacity-100";
+  const whiteIconFilter =
+    "brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(162deg) brightness(102%) contrast(101%)";
+  const yellowIconFilter =
+    "brightness(0) saturate(100%) invert(86%) sepia(80%) saturate(1330%) hue-rotate(349deg) brightness(104%) contrast(103%)";
+
   return (
-    <nav className="bg-primary sticky top-0 z-50 shadow-lg">
-      <div className="container mx-auto flex items-center justify-between h-16 px-4">
+    <nav className="sticky top-0 z-50 bg-primary shadow-lg">
+      <div className="mx-auto flex h-[78px] w-full items-center justify-between px-6 md:px-10 lg:px-12">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <span className="font-anton text-2xl text-accent">CCA</span>
-          <span className="font-anton text-2xl text-gold">BAY</span>
+        <Link to="/" className="flex items-center leading-none">
+          <span className="font-anton text-[40px] leading-none tracking-tight text-white">
+            CCA
+          </span>
+          <span className="font-anton text-[40px] leading-none tracking-tight text-[#D71440]">
+            BAY
+          </span>
         </Link>
 
-        {/* Desktop nav links */}
-        <div className="hidden md:flex items-center gap-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              className={`px-3 py-2 rounded-md text-sm font-montserrat font-medium transition-colors ${
-                location.pathname === link.path
-                  ? "text-gold"
-                  : "text-primary-foreground hover:text-gold"
-              }`}
-            >
-              {link.name}
-            </Link>
-          ))}
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-12 lg:gap-16">
+          {navLinks.map((link) => {
+            const isActive = location.pathname === link.path;
+
+            return (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`font-montserrat text-[20px] transition-colors ${
+                  isActive
+                    ? "font-bold text-[#FFDD00]"
+                    : "font-normal text-primary-foreground hover:text-[#FFDD00]"
+                }`}
+              >
+                {link.name}
+              </Link>
+            );
+          })}
         </div>
 
-        {/* Right side: NTU logo + auth */}
-        <div className="hidden md:flex items-center gap-3">
-          {user ? (
-            <Button variant="ghost" size="sm" onClick={signOut} className="text-primary-foreground hover:text-gold hover:bg-navy-light">
-              <LogOut className="h-4 w-4" />
-              <span>Logout</span>
-            </Button>
-          ) : (
-            <Link to="/login">
-              <Button variant="gold" size="sm">Login</Button>
-            </Link>
-          )}
+        {/* Right icons */}
+        <div className="hidden md:flex items-center gap-6 lg:gap-8">
+          <Link to="/explore" aria-label="Search">
+            <img
+              src="/icons/search.png"
+              alt="Search"
+              className={iconClass}
+              style={{
+                filter:
+                  location.pathname === "/explore" ? yellowIconFilter : whiteIconFilter,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.filter = yellowIconFilter;
+              }}
+              onMouseLeave={(e) => {
+                if (location.pathname !== "/explore") {
+                  e.currentTarget.style.filter = whiteIconFilter;
+                }
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.filter = yellowIconFilter;
+              }}
+            />
+          </Link>
+
+          <Link to={user ? "/profile" : "/login"} aria-label="Profile">
+            <img
+              src={user ? "/icons/profileLoggedIn.png" : "/icons/profile.png"}
+              alt="Profile"
+              className={iconClass}
+              style={{
+                filter:
+                  location.pathname === "/profile" ? yellowIconFilter : whiteIconFilter,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.filter = yellowIconFilter;
+              }}
+              onMouseLeave={(e) => {
+                if (location.pathname !== "/profile") {
+                  e.currentTarget.style.filter = whiteIconFilter;
+                }
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.filter = yellowIconFilter;
+              }}
+            />
+          </Link>
+
+          <Link to={user ? "/saved" : "/login"} aria-label="Saved CCAs">
+            <img
+              src="/icons/save.png"
+              alt="Saved CCAs"
+              className={iconClass}
+              style={{
+                filter: location.pathname === "/saved" ? yellowIconFilter : whiteIconFilter,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.filter = yellowIconFilter;
+              }}
+              onMouseLeave={(e) => {
+                if (location.pathname !== "/saved") {
+                  e.currentTarget.style.filter = whiteIconFilter;
+                }
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.filter = yellowIconFilter;
+              }}
+            />
+          </Link>
         </div>
 
         {/* Mobile menu button */}
         <button
           className="md:hidden text-primary-foreground"
           onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Toggle menu"
         >
-          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {mobileOpen ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
         </button>
       </div>
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-primary border-t border-navy-light pb-4">
-          {navLinks.map((link) => (
+        <div className="md:hidden border-t border-white/10 bg-primary px-6 pb-5 pt-3">
+          <div className="flex flex-col gap-1">
+            {navLinks.map((link) => {
+              const isActive = location.pathname === link.path;
+
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => setMobileOpen(false)}
+                  className={`py-3 font-montserrat text-[20px] transition-colors ${
+                    isActive
+                      ? "font-bold text-[#FFDD00]"
+                      : "font-normal text-primary-foreground hover:text-[#FFDD00]"
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              );
+            })}
+
             <Link
-              key={link.path}
-              to={link.path}
+              to="/explore"
               onClick={() => setMobileOpen(false)}
-              className={`block px-4 py-2 text-sm font-montserrat ${
-                location.pathname === link.path
-                  ? "text-gold"
-                  : "text-primary-foreground"
-              }`}
+              className="py-3 font-montserrat text-[20px] font-normal text-primary-foreground hover:text-[#FFDD00]"
             >
-              {link.name}
+              Search
             </Link>
-          ))}
-          {user ? (
-            <button onClick={signOut} className="px-4 py-2 text-sm text-primary-foreground font-montserrat">
-              Logout
-            </button>
-          ) : (
-            <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-4 py-2 text-sm text-gold font-montserrat">
-              Login
+
+            <Link
+              to={user ? "/profile" : "/login"}
+              onClick={() => setMobileOpen(false)}
+              className="py-3 font-montserrat text-[20px] font-normal text-primary-foreground hover:text-[#FFDD00]"
+            >
+              My Profile
             </Link>
-          )}
+
+            <Link
+              to={user ? "/saved" : "/login"}
+              onClick={() => setMobileOpen(false)}
+              className="py-3 font-montserrat text-[20px] font-normal text-primary-foreground hover:text-[#FFDD00]"
+            >
+              Saved CCAs
+            </Link>
+
+            {user && (
+              <button
+                onClick={() => {
+                  signOut();
+                  setMobileOpen(false);
+                }}
+                className="flex items-center gap-2 py-3 text-left font-montserrat text-[20px] font-normal text-primary-foreground hover:text-[#FFDD00]"
+              >
+                <LogOut className="h-5 w-5" />
+                Logout
+              </button>
+            )}
+          </div>
         </div>
       )}
     </nav>
