@@ -61,28 +61,22 @@ const Navbar: React.FC = () => {
 
         {/* Right icons */}
         <div className="hidden md:flex items-center gap-6 lg:gap-8">
-          <Link to="/explore" aria-label="Search">
+          <button type="button" aria-label="Search" className="bg-transparent p-0">
             <img
               src="/icons/search.png"
               alt="Search"
               className={iconClass}
               style={{
-                filter:
-                  location.pathname === "/explore" ? yellowIconFilter : whiteIconFilter,
+                filter: whiteIconFilter,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.filter = yellowIconFilter;
               }}
               onMouseLeave={(e) => {
-                if (location.pathname !== "/explore") {
-                  e.currentTarget.style.filter = whiteIconFilter;
-                }
-              }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.filter = yellowIconFilter;
+                e.currentTarget.style.filter = whiteIconFilter;
               }}
             />
-          </Link>
+          </button>
 
           <Link to={user ? "/profile" : "/login"} aria-label="Profile">
             <img

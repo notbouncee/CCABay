@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,29 +24,31 @@ const FeaturedStaticCard: React.FC<{ isLoggedIn: boolean }> = ({ isLoggedIn }) =
   const [isSaved, setIsSaved] = useState(false);
   const navigate = useNavigate();
 
-  const handleSaveClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-
+  const handleCardSelect = () => {
     if (!isLoggedIn) {
       navigate("/login");
       return;
     }
-    setIsSaved((prev) => !prev);
+    setIsSaved(true);
+  };
+
+  const handleSaveClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleCardSelect();
   };
 
   return (
-    <Link to="/cca/1" className="group block w-full min-w-0">
+    <button type="button" onClick={handleCardSelect} className="group block w-full min-w-0 text-left">
       <article className="flex aspect-[432/250] w-full flex-col overflow-hidden rounded-[20px] bg-[#ECECEC] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
         <div className="relative h-[60%] overflow-hidden">
-          <img src="/images/perfCreate.png" alt="Contemp{minated}" className="h-full w-full object-cover" />
+          <img src="/images/contemp.png" alt="Contemp{minated}" className="h-full w-full object-cover" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.06)_28%,rgba(0,0,0,0.28)_72%,rgba(0,0,0,0.46)_100%)]" />
           <button
             type="button"
             aria-label={isSaved ? "Saved CCA" : "Save CCA"}
             onClick={handleSaveClick}
-            className={`group absolute right-[clamp(6px,1vw,12px)] top-[clamp(6px,1vw,12px)] flex h-[clamp(16px,2vw,32px)] w-[clamp(16px,2vw,32px)] items-center justify-center rounded-md transition-colors duration-150 ${
-              isSaved ? "bg-[#FFDD00]" : "bg-[#181C62]/70"
-            }`}
+            className="group absolute right-[clamp(6px,1vw,12px)] top-[clamp(6px,1vw,12px)] flex h-[clamp(16px,2vw,32px)] w-[clamp(16px,2vw,32px)] items-center justify-center rounded-md"
           >
             <img
               src={isSaved ? "/icons/saveOption.png" : "/icons/save.png"}
@@ -72,12 +74,17 @@ const FeaturedStaticCard: React.FC<{ isLoggedIn: boolean }> = ({ isLoggedIn }) =
           </div>
         </div>
       </article>
-    </Link>
+    </button>
   );
 };
 
 const HomePage: React.FC = () => {
   const { user } = useAuth();
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [selectedChatOption, setSelectedChatOption] = useState<string | null>(null);
+  const [showRecommendedReply, setShowRecommendedReply] = useState(false);
+  const [chatDraft, setChatDraft] = useState("");
+  const [sentMessages, setSentMessages] = useState<string[]>([]);
   const [showMoreCCAs, setShowMoreCCAs] = useState(false);
   const [fairSearchQuery, setFairSearchQuery] = useState("");
   const [submittedFairSearchQuery, setSubmittedFairSearchQuery] = useState("");
@@ -140,7 +147,36 @@ const HomePage: React.FC = () => {
     primaryPills,
     [primaryPills[0]],
   ];
+  const chatOptions = [
+    "Recommend CCAs for me",
+    "Find CCAs based on my schedule",
+    "Show low-commitment CCAs",
+    "Help me explore by interest",
+  ];
+  const recommendedCcaReply =
+    "Great choice! I can recommend CCAs for you. Share your interests, preferred commitment level, and available days, and I will suggest your best matches.";
   const isContempSearch = submittedFairSearchQuery.trim().toLowerCase() === "contemp{minated}";
+
+  useEffect(() => {
+    if (selectedChatOption === "Recommend CCAs for me") {
+      setShowRecommendedReply(false);
+      const timer = window.setTimeout(() => {
+        setShowRecommendedReply(true);
+      }, 650);
+
+      return () => window.clearTimeout(timer);
+    }
+
+    setShowRecommendedReply(false);
+  }, [selectedChatOption]);
+
+  const handleSendMessage = () => {
+    const trimmedMessage = chatDraft.trim();
+    if (!trimmedMessage) return;
+
+    setSentMessages((prev) => [...prev, trimmedMessage]);
+    setChatDraft("");
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -271,7 +307,7 @@ const HomePage: React.FC = () => {
             <Link to="/explore">
               <Button
                 variant="gold"
-                className="h-[clamp(36px,3.8vw,50px)] w-[clamp(150px,17vw,220px)] rounded-full font-montserrat text-[clamp(11px,1.1vw,16px)] font-bold"
+                className="h-[clamp(36px,3.8vw,50px)] w-[clamp(150px,17vw,220px)] rounded-full font-montserrat text-[clamp(11px,1.1vw,16px)] font-bold transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg"
               >
                 View All CCAs
               </Button>
@@ -393,6 +429,110 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {isChatOpen && (
+        <div className="fixed bottom-6 right-6 z-50 h-[644px] w-[408px] overflow-hidden rounded-2xl bg-[#E6E6E6] shadow-[0_0_10px_0_rgba(0,0,0,0.25)]">
+          <div className="relative flex h-[56px] items-center justify-center bg-[#D71440]">
+            <span className="font-anton text-[24px] leading-none text-white">CCAi</span>
+            <button
+              type="button"
+              aria-label="Close chat"
+              onClick={() => setIsChatOpen(false)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 transition-transform duration-150 hover:scale-110 active:scale-95"
+            >
+              <img src="/icons/closeBot.png" alt="Close chat" className="h-8 w-8 object-contain" />
+            </button>
+          </div>
+
+          <div className="flex h-[calc(100%-56px)] flex-col p-3">
+            <div className="h-[71px] w-[304px] rounded-[24px] rounded-bl-[8px] bg-white p-[14px] font-montserrat text-[12px] leading-[1.25] text-[#3F3F3F]">
+              Hi, I'm CCAI ("<strong>Kai</strong>") 👋
+              <br />
+              Tell me what you're looking for, and I'll help you find CCAs that fit you.
+            </div>
+
+            <div className="mt-3 w-fit max-w-[72%] rounded-[24px] rounded-bl-[8px] bg-white px-[14px] py-[14px] font-montserrat text-[12px] leading-[1.25] text-[#3F3F3F]">
+              What can I help you with today?
+            </div>
+
+            <div className={`${selectedChatOption ? "mt-3" : "mt-auto"} space-y-2 pb-2`}>
+              {(selectedChatOption ? [selectedChatOption] : chatOptions).map((option) => {
+                const isSelected = selectedChatOption === option;
+
+                return (
+                  <div key={option} className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedChatOption(option)}
+                      className={`rounded-[24px] rounded-br-[8px] px-[14px] py-[14px] font-montserrat text-[12px] leading-[1.25] transition-colors duration-150 ${
+                        isSelected
+                          ? "bg-[#D71440] font-bold text-white"
+                          : "border border-dashed border-black bg-transparent font-normal text-[#3F3F3F] hover:border-white hover:bg-[#D71440] hover:text-white"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  </div>
+                );
+              })}
+
+              {showRecommendedReply && (
+                <div className="pt-1">
+                  <div className="w-[304px] rounded-[24px] rounded-bl-[8px] bg-white px-[14px] py-[14px] font-montserrat text-[12px] leading-[1.25] text-[#3F3F3F]">
+                    {recommendedCcaReply}
+                  </div>
+                </div>
+              )}
+
+              {sentMessages.map((message, index) => (
+                <div key={`sent-msg-${index}`} className="flex justify-end pt-1">
+                  <div className="max-w-[72%] rounded-[24px] rounded-br-[8px] bg-[#D71440] px-[14px] py-[14px] font-montserrat text-[12px] font-normal leading-[1.25] text-white">
+                    {message}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className={`${selectedChatOption ? "mt-auto" : "mt-1"} flex h-[54px] w-full items-center rounded-full bg-black pl-5 pr-3`}>
+              <Input
+                placeholder="Type your message here..."
+                value={chatDraft}
+                onChange={(e) => setChatDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                className="h-full border-0 bg-transparent px-0 font-montserrat text-[14px] font-medium leading-[1.25] text-white placeholder:text-[14px] placeholder:font-medium placeholder:leading-[1.25] placeholder:text-white focus:placeholder:text-[#8C8C8C] focus:border-transparent focus:outline-none focus:shadow-none focus-visible:border-transparent focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+              <button
+                type="button"
+                aria-label="Send message"
+                onClick={handleSendMessage}
+                className="group ml-auto flex h-[40px] w-[40px] items-center justify-center rounded-full bg-white transition-colors duration-150 hover:bg-[#D71440]"
+              >
+                <img
+                  src="/icons/sendIcon.png"
+                  alt="Send message"
+                  className="h-[22px] w-[22px] object-contain transition-[filter] duration-150 group-hover:[filter:brightness(0)_saturate(100%)_invert(100%)_sepia(0%)_saturate(0%)_hue-rotate(162deg)_brightness(102%)_contrast(101%)]"
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!isChatOpen && (
+        <button
+          type="button"
+          aria-label="Chatbot"
+          onClick={() => setIsChatOpen(true)}
+          className="fixed bottom-6 right-6 z-50 flex h-[60px] w-[60px] items-center justify-center rounded-full bg-[#D71440] transition-transform duration-150 hover:scale-110 active:scale-95"
+        >
+          <img src="/icons/chatbot.png" alt="Chatbot" className="h-[40px] w-[40px] object-contain" />
+        </button>
+      )}
     </div>
   );
 };
