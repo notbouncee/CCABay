@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { Search, Calendar, Trash2, Star } from "lucide-react";
+import { Search, Calendar, Trash2, Star, Bookmark } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -23,12 +23,15 @@ const SavedCCARow: React.FC<{
   return (
     <div className="bg-card rounded-xl shadow-md overflow-hidden border border-border flex flex-col md:flex-row">
       {/* Left: Image */}
-      <div className="md:w-48 h-40 md:h-auto bg-gradient-to-br from-primary to-navy-light flex-shrink-0 flex items-center justify-center">
+      <div className="md:w-48 h-40 md:h-auto bg-gradient-to-br from-primary to-navy-light flex-shrink-0 flex items-center justify-center relative">
         {cca.image_url ? (
           <img src={cca.image_url} alt={cca.name} className="h-full w-full object-cover" />
         ) : (
           <span className="font-anton text-4xl text-primary-foreground/30">{cca.name.charAt(0)}</span>
         )}
+        <div className="absolute top-3 left-3">
+          <Bookmark className="h-7 w-7 fill-[#FFD000] text-[#FFD000]" />
+        </div>
       </div>
 
       {/* Middle: Details */}
@@ -56,15 +59,11 @@ const SavedCCARow: React.FC<{
 
       {/* Right: Actions */}
       <div className="p-5 flex flex-col gap-2 justify-center items-end">
-        <Button
-          variant="accent"
-          size="sm"
-          className="font-montserrat"
-          onClick={() => onView(cca)}
-        >
-          <Calendar className="h-4 w-4" />
-          View Details
-        </Button>
+        <Link to={`/apply/${cca.id}`}>
+          <Button variant="accent" size="sm" className="font-montserrat w-full">
+            Apply Now
+          </Button>
+        </Link>
         <Button
           variant="ghost"
           size="sm"
@@ -112,22 +111,9 @@ const SavedCCACard: React.FC<{
         <h3 className="absolute bottom-3 left-4 font-anton text-[24px] leading-none text-white">
           {cca.name}
         </h3>
-        <button
-          type="button"
-          aria-label="Remove from saved"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onRemove(item.id);
-          }}
-          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center"
-        >
-          <img
-            src="/icons/saveOption.png"
-            alt="Remove"
-            className="h-8 w-8 object-contain [filter:brightness(0)_saturate(100%)_invert(100%)_sepia(0%)_saturate(0%)_hue-rotate(162deg)_brightness(102%)_contrast(101%)]"
-          />
-        </button>
+        <div className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center">
+          <Bookmark className="h-8 w-8 fill-[#FFD000] text-[#FFD000]" />
+        </div>
       </div>
 
       <div className="px-4 pb-3 pt-2">
@@ -157,13 +143,11 @@ const SavedCCACard: React.FC<{
         </p>
 
         <div className="mt-3 flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => onView(cca)}
-            className="flex items-center gap-2 font-montserrat text-[12px] font-bold text-primary hover:underline"
-          >
-            View Details
-          </button>
+          <Link to={`/apply/${cca.id}`} className="flex-1">
+            <Button variant="accent" size="sm" className="w-full font-montserrat">
+              Apply Now
+            </Button>
+          </Link>
           <button
             type="button"
             onClick={() => onRemove(item.id)}
