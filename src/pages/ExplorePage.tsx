@@ -1,11 +1,13 @@
 // ExplorePage - CCA Wiki with grid display and category filters
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import CCACard from "@/components/CCACard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
 const categories = ["All", "Performance & Creativity", "Competition & Academics", "Community & Lifestyle", "Cultural", "Sports"];
@@ -33,6 +35,10 @@ const fallbackCard: Tables<"ccas"> = {
 
 // CCA exploration page with search and category filters
 const ExplorePage: React.FC = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get("category") || "All";
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
@@ -73,6 +79,42 @@ const ExplorePage: React.FC = () => {
   });
   const sourceCard = filteredCCAs?.[0] || fallbackCard;
   const repeatedCards = Array.from({ length: 12 }, () => sourceCard);
+
+  // Fetch user's wishlist to determine saved status
+  const { data: wishlistIds } = useQuery({
+    queryKey: ["wishlist"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("cca_wishlist").select("cca_id").eq("user_id", user!.id);
+      if (error) throw error;
+      return data?.map((w) => w.cca_id) || [];
+    },
+    enabled: !!user,
+  });
+
+  // Toggle save CCA mutation
+  const toggleSaveMutation = useMutation({
+    mutationFn: async ({ ccaId, isSaved }: { ccaId: string; isSaved: boolean }) => {
+      if (!user) {
+        navigate("/login");
+        return;
+      }
+      if (isSaved) {
+        await supabase.from("cca_wishlist").delete().eq("cca_id", ccaId).eq("user_id", user.id);
+      } else {
+        await supabase.from("cca_wishlist").insert({ cca_id: ccaId, user_id: user.id });
+      }
+    },
+    onSuccess: (_, { isSaved }) => {
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["saved-ccas"] });
+      toast({ title: isSaved ? "Removed from saved CCAs" : "Saved to wishlist!" });
+    },
+  });
+
+  const handleToggleSave = (ccaId: string) => {
+    const isSaved = wishlistIds?.includes(ccaId) || false;
+    toggleSaveMutation.mutate({ ccaId, isSaved });
+  };
 
   // Handle category selection
   const handleCategoryChange = (cat: string) => {
@@ -347,7 +389,12 @@ const ExplorePage: React.FC = () => {
                   {controlsBar}
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     {repeatedCards.map((cca, index) => (
-                      <CCACard key={`${cca.id}-repeat-${index}`} cca={cca} />
+                      <CCACard
+                        key={`${cca.id}-repeat-${index}`}
+                        cca={cca}
+                        isSaved={wishlistIds?.includes(cca.id) || false}
+                        onToggleSave={handleToggleSave}
+                      />
                     ))}
                   </div>
                 </div>
@@ -357,7 +404,12 @@ const ExplorePage: React.FC = () => {
                 {controlsBar}
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {repeatedCards.map((cca, index) => (
-                    <CCACard key={`${cca.id}-repeat-${index}`} cca={cca} />
+                    <CCACard
+                      key={`${cca.id}-repeat-${index}`}
+                      cca={cca}
+                      isSaved={wishlistIds?.includes(cca.id) || false}
+                      onToggleSave={handleToggleSave}
+                    />
                   ))}
                 </div>
               </>

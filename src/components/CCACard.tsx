@@ -1,16 +1,16 @@
 // CCACard - Styled card for Explore grid with image, tags, and quick metadata
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
-import { Star } from "lucide-react";
+import { Star, Bookmark } from "lucide-react";
 
 interface CCACardProps {
   cca: Tables<"ccas">;
+  isSaved?: boolean;
+  onToggleSave?: (ccaId: string) => void;
 }
 
-const CCACard: React.FC<CCACardProps> = ({ cca }) => {
-  const [isSaved, setIsSaved] = useState(false);
-
+const CCACard: React.FC<CCACardProps> = ({ cca, isSaved = false, onToggleSave }) => {
   const primaryTag = cca.category === "Performance & Creativity"
     ? "Performing Arts"
     : cca.category === "Competition & Academics"
@@ -36,6 +36,14 @@ const CCACard: React.FC<CCACardProps> = ({ cca }) => {
 
   const trialDate = formatTryoutDate(cca.tryout_dates);
 
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onToggleSave) {
+      onToggleSave(cca.id);
+    }
+  };
+
   return (
     <Link to={`/cca/${cca.id}`} className="group block">
       <article className="overflow-hidden rounded-[20px] bg-white transition-all duration-200 group-hover:-translate-y-0.5" style={{ boxShadow: "0 0 10px 0 rgba(0,0,0,0.10)" }}>
@@ -46,7 +54,6 @@ const CCACard: React.FC<CCACardProps> = ({ cca }) => {
             <img src="/images/contemp.png" alt={cca.name} className="h-full w-full object-cover" />
           )}
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.06)_28%,rgba(0,0,0,0.28)_72%,rgba(0,0,0,0.46)_100%)]" />
-
           <h3 className="absolute bottom-3 left-4 font-anton text-[24px] leading-none text-white">
             {cca.name}
           </h3>
@@ -54,18 +61,10 @@ const CCACard: React.FC<CCACardProps> = ({ cca }) => {
           <button
             type="button"
             aria-label={isSaved ? "Saved" : "Save"}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsSaved((prev) => !prev);
-            }}
+            onClick={handleSaveClick}
             className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center"
           >
-            <img
-              src="/icons/save.png"
-              alt="Save"
-              className="h-8 w-8 object-contain [filter:brightness(0)_saturate(100%)_invert(100%)_sepia(0%)_saturate(0%)_hue-rotate(162deg)_brightness(102%)_contrast(101%)]"
-            />
+            <Bookmark className={`h-8 w-8 ${isSaved ? "fill-[#FFD000] text-[#FFD000]" : "text-white"}`} />
           </button>
         </div>
 
@@ -102,7 +101,6 @@ const CCACard: React.FC<CCACardProps> = ({ cca }) => {
             </span>
           </div>
         </div>
-
       </article>
     </Link>
   );
