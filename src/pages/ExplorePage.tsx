@@ -1,27 +1,22 @@
+// ExplorePage - CCA Wiki with grid display and category filters
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import CCACard from "@/components/CCACard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
-const categories = [
-  "All",
-  "Performance & Creativity",
-  "Competition & Academics",
-  "Community & Lifestyle",
-  "Cultural",
-  "Sports",
-];
+const categories = ["All", "Performance & Creativity", "Competition & Academics", "Community & Lifestyle", "Cultural", "Sports"];
 
 const fallbackCard: Tables<"ccas"> = {
   id: "fallback-contemp",
   name: "Contemp{minated}",
   category: "Performance & Creativity",
-  description:
-    "Express yourself through contemporary dance, performance, and team spirit.",
+  description: "Express yourself through contemporary dance, performance, and team spirit.",
   tags: ["Recreational", "Medium"],
   image_url: "/images/contemp.png",
   hall_points: 3,
@@ -38,7 +33,12 @@ const fallbackCard: Tables<"ccas"> = {
   updated_at: "2026-01-01T00:00:00.000Z",
 };
 
+// CCA exploration page with search and category filters
 const ExplorePage: React.FC = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get("category") || "All";
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
@@ -47,9 +47,7 @@ const ExplorePage: React.FC = () => {
   const [viewMode, setViewMode] = useState<"rows" | "grid">("grid");
   const [currentPage, setCurrentPage] = useState(2);
   const totalPages = 3;
-  const [selectedFilterTags, setSelectedFilterTags] = useState<string[]>([
-    "Performing Arts",
-  ]);
+  const [selectedFilterTags, setSelectedFilterTags] = useState<string[]>(["Performing Arts"]);
   const [showCategories, setShowCategories] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
   const [showLifestyle, setShowLifestyle] = useState(false);
@@ -61,6 +59,7 @@ const ExplorePage: React.FC = () => {
     );
   };
 
+  // Fetch all CCAs
   const { data: ccas, isLoading } = useQuery({
     queryKey: ["all-ccas"],
     queryFn: async () => {
@@ -70,21 +69,54 @@ const ExplorePage: React.FC = () => {
     },
   });
 
+  // Filter CCAs by category and search
   const filteredCCAs = ccas?.filter((cca) => {
-    const matchesCategory =
-      selectedCategory === "All" || cca.category === selectedCategory;
-
-    const matchesSearch =
-      cca.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesCategory = selectedCategory === "All" || cca.category === selectedCategory;
+    const matchesSearch = cca.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       cca.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       cca.tags?.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
-
     return matchesCategory && matchesSearch;
   });
-
   const sourceCard = filteredCCAs?.[0] || fallbackCard;
   const repeatedCards = Array.from({ length: 12 }, () => sourceCard);
 
+  // Fetch user's wishlist to determine saved status
+  const { data: wishlistIds } = useQuery({
+    queryKey: ["wishlist"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("cca_wishlist").select("cca_id").eq("user_id", user!.id);
+      if (error) throw error;
+      return data?.map((w) => w.cca_id) || [];
+    },
+    enabled: !!user,
+  });
+
+  // Toggle save CCA mutation
+  const toggleSaveMutation = useMutation({
+    mutationFn: async ({ ccaId, isSaved }: { ccaId: string; isSaved: boolean }) => {
+      if (!user) {
+        navigate("/login");
+        return;
+      }
+      if (isSaved) {
+        await supabase.from("cca_wishlist").delete().eq("cca_id", ccaId).eq("user_id", user.id);
+      } else {
+        await supabase.from("cca_wishlist").insert({ cca_id: ccaId, user_id: user.id });
+      }
+    },
+    onSuccess: (_, { isSaved }) => {
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["saved-ccas"] });
+      toast({ title: isSaved ? "Removed from saved CCAs" : "Saved to wishlist!" });
+    },
+  });
+
+  const handleToggleSave = (ccaId: string) => {
+    const isSaved = wishlistIds?.includes(ccaId) || false;
+    toggleSaveMutation.mutate({ ccaId, isSaved });
+  };
+
+  // Handle category selection
   const handleCategoryChange = (cat: string) => {
     setSelectedCategory(cat);
     if (cat === "All") {
@@ -121,11 +153,7 @@ const ExplorePage: React.FC = () => {
         className="inline-flex h-9 items-center rounded-xl bg-[#E6E6E6] pl-5 pr-3 font-montserrat text-[14px] font-medium leading-none text-[#8C8C8C] transition-colors duration-200 hover:bg-[#D9D9D9] hover:text-[#6F6F6F]"
       >
         Default Sorting
-        <img
-          src="/icons/dropdown.png"
-          alt="Dropdown"
-          className="ml-4 h-4 w-4 object-contain [filter:brightness(0)_invert(55%)]"
-        />
+        <img src="/icons/dropdown.png" alt="Dropdown" className="ml-4 h-4 w-4 object-contain [filter:brightness(0)_invert(55%)]" />
       </button>
 
       <button
@@ -138,11 +166,7 @@ const ExplorePage: React.FC = () => {
         <img
           src="/icons/rows.png"
           alt="Rows view"
-          className={`h-5 w-5 object-contain ${
-            viewMode === "rows"
-              ? "[filter:brightness(0)_saturate(100%)_invert(100%)]"
-              : "[filter:brightness(0)_invert(55%)]"
-          }`}
+          className={`h-5 w-5 object-contain ${viewMode === "rows" ? "[filter:brightness(0)_saturate(100%)_invert(100%)]" : "[filter:brightness(0)_invert(55%)]"}`}
         />
       </button>
 
@@ -156,11 +180,7 @@ const ExplorePage: React.FC = () => {
         <img
           src="/icons/grid.png"
           alt="Grid view"
-          className={`h-[22px] w-[22px] object-contain ${
-            viewMode === "grid"
-              ? "[filter:brightness(0)_saturate(100%)_invert(100%)]"
-              : "[filter:brightness(0)_invert(55%)]"
-          }`}
+          className={`h-[22px] w-[22px] object-contain ${viewMode === "grid" ? "[filter:brightness(0)_saturate(100%)_invert(100%)]" : "[filter:brightness(0)_invert(55%)]"}`}
         />
       </button>
 
@@ -172,22 +192,20 @@ const ExplorePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
       <div className="bg-primary py-14">
         <div className="px-6 md:px-10 lg:px-12">
-          <h1 className="mb-3 font-anton text-[50px] leading-none text-primary-foreground">
-            Explore CCAs
-          </h1>
+          <h1 className="mb-3 font-anton text-[50px] leading-none text-primary-foreground">Explore CCAs</h1>
           <p className="mb-6 font-montserrat text-[16px] text-primary-foreground/70">
             Browse through NTU’s diverse range of CCAs for AY2025/26
           </p>
 
+          {/* Search bar */}
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <div className="relative w-full max-w-[620px]">
               <span
                 aria-hidden="true"
-                className={`pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 ${
-                  searchQuery.trim() ? "bg-black" : "bg-[#A5A5A5]"
-                }`}
+                className={`pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 ${searchQuery.trim() ? "bg-black" : "bg-[#A5A5A5]"}`}
                 style={{
                   WebkitMaskImage: "url('/icons/search.png')",
                   maskImage: "url('/icons/search.png')",
@@ -221,7 +239,9 @@ const ExplorePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Category filters */}
       <div className="px-6 pb-10 pt-6 md:px-10 lg:px-12">
+        {/* CCA Grid */}
         {isLoading ? (
           <div className="flex justify-center py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -230,35 +250,22 @@ const ExplorePage: React.FC = () => {
           <>
             {showFilters ? (
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start lg:gap-x-14">
+                {/* Filter Sidebar */}
                 <aside className="w-full font-montserrat">
+                  {/* Categories */}
                   <div className="mt-6">
                     <button
                       type="button"
                       onClick={() => setShowCategories((p) => !p)}
                       className="flex w-full items-center justify-between"
                     >
-                      <span className="font-montserrat text-[18px] font-bold text-[#181C62]">
-                        Categories
-                      </span>
-                      <span className="text-[24px] font-medium text-[#181C62] leading-none">
-                        {showCategories ? "−" : "+"}
-                      </span>
+                      <span className="font-montserrat text-[18px] font-bold text-[#181C62]">Categories</span>
+                      <span className="text-[24px] font-medium text-[#181C62] leading-none">{showCategories ? "−" : "+"}</span>
                     </button>
                     <div className="mb-3 mt-1 h-px bg-[#181C62]" />
                     {showCategories && (
                       <div className="mt-3 grid grid-cols-2 gap-2">
-                        {[
-                          "Sports",
-                          "Performing Arts",
-                          "Service",
-                          "Academics",
-                          "Arts",
-                          "Orientation",
-                          "Cultural",
-                          "Faith-Based",
-                          "Competition-Based",
-                          "Recreational",
-                        ].map((tag) => (
+                        {["Sports","Performing Arts","Service","Academics","Arts","Orientation","Cultural","Faith-Based","Competition-Based","Recreational"].map((tag) => (
                           <button
                             key={tag}
                             type="button"
@@ -276,30 +283,20 @@ const ExplorePage: React.FC = () => {
                     )}
                   </div>
 
+                  {/* Goals */}
                   <div className="mt-6">
                     <button
                       type="button"
                       onClick={() => setShowGoals((p) => !p)}
                       className="flex w-full items-center justify-between"
                     >
-                      <span className="font-montserrat text-[18px] font-bold text-[#181C62]">
-                        Goals
-                      </span>
-                      <span className="text-[24px] font-medium text-[#181C62] leading-none">
-                        {showGoals ? "−" : "+"}
-                      </span>
+                      <span className="font-montserrat text-[18px] font-bold text-[#181C62]">Goals</span>
+                      <span className="text-[24px] font-medium text-[#181C62] leading-none">{showGoals ? "−" : "+"}</span>
                     </button>
                     <div className="mb-3 mt-1 h-px bg-[#181C62]" />
                     {showGoals && (
                       <div className="mt-3 grid grid-cols-2 gap-2">
-                        {[
-                          "Leadership",
-                          "Social Connection",
-                          "Skill Development",
-                          "Build Portfolio",
-                          "Staying Active",
-                          "Giving Back",
-                        ].map((tag) => (
+                        {["Leadership","Social Connection","Skill Development","Build Portfolio","Staying Active","Giving Back"].map((tag) => (
                           <button
                             key={tag}
                             type="button"
@@ -317,29 +314,20 @@ const ExplorePage: React.FC = () => {
                     )}
                   </div>
 
+                  {/* Lifestyle */}
                   <div className="mt-6">
                     <button
                       type="button"
                       onClick={() => setShowLifestyle((p) => !p)}
                       className="flex w-full items-center justify-between"
                     >
-                      <span className="font-montserrat text-[18px] font-bold text-[#181C62]">
-                        Lifestyle
-                      </span>
-                      <span className="text-[24px] font-medium text-[#181C62] leading-none">
-                        {showLifestyle ? "−" : "+"}
-                      </span>
+                      <span className="font-montserrat text-[18px] font-bold text-[#181C62]">Lifestyle</span>
+                      <span className="text-[24px] font-medium text-[#181C62] leading-none">{showLifestyle ? "−" : "+"}</span>
                     </button>
                     <div className="mb-3 mt-1 h-px bg-[#181C62]" />
                     {showLifestyle && (
                       <div className="mt-3 grid grid-cols-2 gap-2">
-                        {[
-                          "Low Commitment",
-                          "Flexible Schedule",
-                          "Beginner Friendly",
-                          "Team-Based",
-                          "Weekend-Based",
-                        ].map((tag) => (
+                        {["Low Commitment","Flexible Schedule","Beginner Friendly","Team-Based","Weekend-Based"].map((tag) => (
                           <button
                             key={tag}
                             type="button"
@@ -357,23 +345,20 @@ const ExplorePage: React.FC = () => {
                     )}
                   </div>
 
+                  {/* Application Status */}
                   <div className="mt-6">
                     <button
                       type="button"
                       onClick={() => setShowAppStatus((p) => !p)}
                       className="flex w-full items-center justify-between"
                     >
-                      <span className="font-montserrat text-[18px] font-bold text-[#181C62]">
-                        Application Status
-                      </span>
-                      <span className="text-[24px] font-medium text-[#181C62] leading-none">
-                        {showAppStatus ? "−" : "+"}
-                      </span>
+                      <span className="font-montserrat text-[18px] font-bold text-[#181C62]">Application Status</span>
+                      <span className="text-[24px] font-medium text-[#181C62] leading-none">{showAppStatus ? "−" : "+"}</span>
                     </button>
                     <div className="mb-3 mt-1 h-px bg-[#181C62]" />
                     {showAppStatus && (
                       <div className="mt-3 grid grid-cols-2 gap-2">
-                        {["Open", "Closing Soon", "Closed"].map((tag) => (
+                        {["Open","Closing Soon","Closed"].map((tag) => (
                           <button
                             key={tag}
                             type="button"
@@ -404,7 +389,12 @@ const ExplorePage: React.FC = () => {
                   {controlsBar}
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     {repeatedCards.map((cca, index) => (
-                      <CCACard key={`${cca.id}-repeat-${index}`} cca={cca} />
+                      <CCACard
+                        key={`${cca.id}-repeat-${index}`}
+                        cca={cca}
+                        isSaved={wishlistIds?.includes(cca.id) || false}
+                        onToggleSave={handleToggleSave}
+                      />
                     ))}
                   </div>
                 </div>
@@ -414,12 +404,18 @@ const ExplorePage: React.FC = () => {
                 {controlsBar}
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {repeatedCards.map((cca, index) => (
-                    <CCACard key={`${cca.id}-repeat-${index}`} cca={cca} />
+                    <CCACard
+                      key={`${cca.id}-repeat-${index}`}
+                      cca={cca}
+                      isSaved={wishlistIds?.includes(cca.id) || false}
+                      onToggleSave={handleToggleSave}
+                    />
                   ))}
                 </div>
               </>
             )}
 
+            {/* Pagination */}
             <div className="mt-10 flex items-center justify-center gap-2">
               <button
                 type="button"
@@ -427,13 +423,8 @@ const ExplorePage: React.FC = () => {
                 disabled={currentPage === 1}
                 className="flex h-8 w-8 items-center justify-center font-montserrat text-[14px] font-semibold text-[#8C8C8C] disabled:opacity-30"
               >
-                <img
-                  src="/icons/dropdown.png"
-                  alt="Previous"
-                  className="h-4 w-4 object-contain rotate-90 [filter:brightness(0)_invert(55%)]"
-                />
+                <img src="/icons/dropdown.png" alt="Previous" className="h-4 w-4 object-contain rotate-90 [filter:brightness(0)_invert(55%)]" />
               </button>
-
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <button
                   key={page}
@@ -448,18 +439,13 @@ const ExplorePage: React.FC = () => {
                   {page}
                 </button>
               ))}
-
               <button
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
                 className="flex h-8 w-8 items-center justify-center font-montserrat text-[14px] font-semibold text-[#8C8C8C] disabled:opacity-30"
               >
-                <img
-                  src="/icons/dropdown.png"
-                  alt="Next"
-                  className="h-4 w-4 object-contain -rotate-90 [filter:brightness(0)_invert(55%)]"
-                />
+                <img src="/icons/dropdown.png" alt="Next" className="h-4 w-4 object-contain -rotate-90 [filter:brightness(0)_invert(55%)]" />
               </button>
             </div>
           </>

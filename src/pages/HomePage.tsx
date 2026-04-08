@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { Bookmark } from "lucide-react";
+import CCACard from "@/components/CCACard";
 
 const CATEGORY_IMAGES = {
   academics: "/images/compAcad.png",
@@ -20,22 +25,33 @@ const formatEventDate = (date: string) => {
   });
 };
 
-const FeaturedStaticCard: React.FC<{ isLoggedIn: boolean }> = ({ isLoggedIn }) => {
-  const [isSaved, setIsSaved] = useState(false);
+const FeaturedStaticCard: React.FC<{
+  isLoggedIn: boolean;
+  isSaved?: boolean;
+  onToggleSave?: () => void;
+}> = ({ isLoggedIn, isSaved = false, onToggleSave }) => {
   const navigate = useNavigate();
+  const [localSaved, setLocalSaved] = useState(isSaved);
 
   const handleCardSelect = () => {
     if (!isLoggedIn) {
       navigate("/login");
       return;
     }
-    setIsSaved(true);
+    navigate("/cca/fallback-contemp");
   };
 
-  const handleSaveClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleSaveClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    handleCardSelect();
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+    setLocalSaved(!localSaved);
+    if (onToggleSave) {
+      onToggleSave();
+    }
   };
 
   return (
@@ -46,15 +62,11 @@ const FeaturedStaticCard: React.FC<{ isLoggedIn: boolean }> = ({ isLoggedIn }) =
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.06)_28%,rgba(0,0,0,0.28)_72%,rgba(0,0,0,0.46)_100%)]" />
           <button
             type="button"
-            aria-label={isSaved ? "Saved CCA" : "Save CCA"}
+            aria-label={localSaved ? "Saved CCA" : "Save CCA"}
             onClick={handleSaveClick}
             className="group absolute right-[clamp(6px,1vw,12px)] top-[clamp(6px,1vw,12px)] flex h-[clamp(16px,2vw,32px)] w-[clamp(16px,2vw,32px)] items-center justify-center rounded-md"
           >
-            <img
-              src={isSaved ? "/icons/saveOption.png" : "/icons/save.png"}
-              alt="Save"
-              className="h-full w-full object-contain transition-none [filter:brightness(0)_saturate(100%)_invert(100%)_sepia(0%)_saturate(0%)_hue-rotate(162deg)_brightness(102%)_contrast(101%)] group-hover:[filter:brightness(0)_saturate(100%)_invert(86%)_sepia(80%)_saturate(1330%)_hue-rotate(349deg)_brightness(104%)_contrast(103%)]"
-            />
+            <Bookmark className={`h-full w-full ${localSaved ? "fill-[#FFD000] text-[#FFD000]" : "text-white"}`} />
           </button>
           <h3 className="absolute bottom-[clamp(6px,1vw,12px)] left-[clamp(8px,1.2vw,16px)] font-anton text-[clamp(14px,2.2vw,24px)] leading-none text-white">Contemp{"{"}minated{"}"}</h3>
         </div>
@@ -80,6 +92,9 @@ const FeaturedStaticCard: React.FC<{ isLoggedIn: boolean }> = ({ isLoggedIn }) =
 
 const HomePage: React.FC = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedChatOption, setSelectedChatOption] = useState<string | null>(null);
   const [showRecommendedReply, setShowRecommendedReply] = useState(false);
@@ -88,6 +103,52 @@ const HomePage: React.FC = () => {
   const [showMoreCCAs, setShowMoreCCAs] = useState(false);
   const [fairSearchQuery, setFairSearchQuery] = useState("");
   const [submittedFairSearchQuery, setSubmittedFairSearchQuery] = useState("");
+
+  // Fetch user's wishlist to determine saved status
+  const { data: wishlistIds } = useQuery({
+    queryKey: ["wishlist"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("cca_wishlist").select("cca_id").eq("user_id", user!.id);
+      if (error) throw error;
+      return data?.map((w) => w.cca_id) || [];
+    },
+    enabled: !!user,
+  });
+
+  // Toggle save CCA mutation
+  const toggleSaveMutation = useMutation({
+    mutationFn: async ({ ccaId, isSaved }: { ccaId: string; isSaved: boolean }) => {
+      if (!user) {
+        navigate("/login");
+        return;
+      }
+      if (isSaved) {
+        await supabase.from("cca_wishlist").delete().eq("cca_id", ccaId).eq("user_id", user.id);
+      } else {
+        await supabase.from("cca_wishlist").insert({ cca_id: ccaId, user_id: user.id });
+      }
+    },
+    onSuccess: (_, { isSaved }) => {
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["saved-ccas"] });
+      toast({ title: isSaved ? "Removed from saved CCAs" : "Saved to wishlist!" });
+    },
+  });
+
+  const handleToggleSave = (ccaId: string) => {
+    const isSaved = wishlistIds?.includes(ccaId) || false;
+    toggleSaveMutation.mutate({ ccaId, isSaved });
+  };
+
+  // Fetch real CCAs for featured section
+  const { data: featuredCCAs } = useQuery({
+    queryKey: ["featured-ccas"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("ccas").select("*").limit(6);
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const categories = [
     {
@@ -298,9 +359,14 @@ const HomePage: React.FC = () => {
       <section className="bg-primary py-10 md:py-12">
         <div className="w-full px-6 md:px-10 lg:px-12">
           <h2 className="mb-6 font-anton text-[clamp(30px,3.2vw,50px)] text-accent">{user ? "Recommended For You" : "Featured CCAs"}</h2>
-          <div className="grid grid-cols-3 gap-[22px]">
-            {Array.from({ length: 6 }).map((_, idx) => (
-              <FeaturedStaticCard key={`featured-static-${idx}`} isLoggedIn={Boolean(user)} />
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {featuredCCAs?.map((cca) => (
+              <CCACard
+                key={cca.id}
+                cca={cca}
+                isSaved={wishlistIds?.includes(cca.id) || false}
+                onToggleSave={handleToggleSave}
+              />
             ))}
           </div>
           <div className="mt-7 text-center">
