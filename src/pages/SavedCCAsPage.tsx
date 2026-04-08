@@ -111,9 +111,18 @@ const SavedCCACard: React.FC<{
         <h3 className="absolute bottom-3 left-4 font-anton text-[24px] leading-none text-white">
           {cca.name}
         </h3>
-        <div className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center">
+        <button
+          type="button"
+          aria-label="Remove from saved"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onRemove(item.id);
+          }}
+          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center"
+        >
           <Bookmark className="h-8 w-8 fill-[#FFD000] text-[#FFD000]" />
-        </div>
+        </button>
       </div>
 
       <div className="px-4 pb-3 pt-2">
