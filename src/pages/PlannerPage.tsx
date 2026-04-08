@@ -39,11 +39,38 @@ const PlannerPage: React.FC = () => {
   const { data: timetable } = useQuery({
     queryKey: ["user-timetable"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("user_timetable").select("*").eq("user_id", user!.id);
-      if (error) throw error;
-      return data;
+      // Hardcoded timetable for everyone
+      return [
+        {
+          event_name: "SS5102 TUT 1 NIE\nCourts\n1730to2020",
+          day_of_week: 0,
+          start_time: "17:30",
+          end_time: "21:00",
+          event_type: "class"
+        },
+        {
+          event_name: "IE4791 LEC/STU\nEELE LT27\n1330to1620",
+          day_of_week: 2,
+          start_time: "13:30",
+          end_time: "17:00",
+          event_type: "class"
+        },
+        {
+          event_name: "DV2008 TUT EE01\nS2.2-B4-04\n1830to2120",
+          day_of_week: 2,
+          start_time: "18:30",
+          end_time: "22:00",
+          event_type: "class"
+        },
+        {
+          event_name: "IE3102 TUT EE02\nTR+93\n1330to1450",
+          day_of_week: 3,
+          start_time: "13:30",
+          end_time: "15:00",
+          event_type: "class"
+        }
+      ];
     },
-    enabled: !!user,
   });
 
   // Fetch all CCAs
@@ -176,10 +203,10 @@ const PlannerPage: React.FC = () => {
         <div className="grid lg:grid-cols-[1fr_300px] gap-6">
           {/* Left: Timetable */}
           <div className="bg-card rounded-xl shadow-md overflow-auto">
-            <table className="w-full border-collapse text-xs">
+            <table className="w-full table-fixed border-collapse text-xs min-w-[600px]">
               <thead>
                 <tr>
-                  <th className="border border-border p-2 bg-primary text-primary-foreground font-anton">TIME\DAY</th>
+                  <th className="border border-border p-2 bg-primary text-primary-foreground font-anton w-20">TIME\DAY</th>
                   {DAYS.map((day) => (
                     <th key={day} className="border border-border p-2 bg-primary text-primary-foreground font-anton">{day}</th>
                   ))}
@@ -192,29 +219,60 @@ const PlannerPage: React.FC = () => {
                       {String(hour).padStart(2, "0")}00 to<br />{String(hour + 1).padStart(2, "0")}00
                     </td>
                     {DAYS.map((_, dayIdx) => {
-                      const eventsHere = allEvents.filter(
-                        (e) => e.day === dayIdx && e.startHour <= hour && e.endHour > hour
+                      const eventsStartingHere = allEvents.filter(
+                        (e) => e.day === dayIdx && e.startHour === hour
                       );
+
                       return (
                         <td
                           key={dayIdx}
-                          className={`border border-border p-1 h-12 relative ${
-                            eventsHere.some((e) => e.conflict)
-                              ? "bg-destructive/20"
-                              : eventsHere.length > 0
-                              ? eventsHere[0].type === "cca"
-                                ? "bg-gold/20"
-                                : "bg-primary/10"
-                              : "bg-secondary/30"
-                          }`}
+                          className="border border-border p-0 h-12 relative bg-secondary/30 align-top"
                         >
-                          {eventsHere.map((ev, i) => (
-                            <div key={i} className={`text-[10px] font-montserrat font-medium truncate ${
-                              ev.conflict ? "text-destructive" : ev.type === "cca" ? "text-gold-foreground" : "text-foreground"
-                            }`}>
-                              {ev.name}
-                            </div>
-                          ))}
+                          {eventsStartingHere.map((ev, i) => {
+                            const duration = ev.endHour - ev.startHour;
+                            const isCCA = ev.type === "cca";
+                            
+                            // Check if there is a smaller event starting at the same time covering the top
+                            const overlapsWithSmallerAtStart = allEvents.some(
+                              (other) =>
+                                other !== ev &&
+                                other.day === ev.day &&
+                                other.startHour === ev.startHour &&
+                                (other.endHour - other.startHour) < duration
+                            );
+
+                            let bgClass = "bg-primary/10 text-foreground border-primary/20";
+                            // Base zIndex: smaller events get higher z-index to appear on top
+                            let zIndex = 100 - duration;
+
+                            if (isCCA) {
+                              zIndex += 50; // CCAs generally above classes
+                              if (ev.conflict) {
+                                bgClass = "bg-destructive text-destructive-foreground border-red-700 font-bold shadow-lg";
+                              } else {
+                                bgClass = "bg-gold text-gold-foreground border-yellow-600 shadow-md";
+                              }
+                            } else if (ev.conflict) {
+                               // For classes that have a conflict
+                               bgClass = "bg-destructive/30 text-foreground border-destructive/50";
+                            }
+
+                            return (
+                              <div
+                                key={i}
+                                className={`absolute left-0 right-0 border p-1 overflow-hidden rounded-sm m-[1px] flex flex-col ${overlapsWithSmallerAtStart ? "justify-end pb-8" : "justify-start"} ${bgClass}`}
+                                style={{
+                                  top: 0,
+                                  height: `calc(${duration * 100}% - 2px)`,
+                                  zIndex: zIndex
+                                }}
+                              >
+                                <div className="text-[10px] font-montserrat whitespace-pre-wrap leading-tight">
+                                  {ev.name}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </td>
                       );
                     })}
