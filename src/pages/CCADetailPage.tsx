@@ -60,7 +60,7 @@ const CCADetailPage: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wishlist-check", id] });
-      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["saved-ccas"] });
       toast({ title: isWishlisted ? "Removed from saved" : "Saved to wishlist!" });
     },
   });

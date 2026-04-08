@@ -183,7 +183,7 @@ const ExplorePage: React.FC = () => {
               />
             </div>
 
-            <Link to="/saved-ccas">
+            <Link to="/saved">
               <Button className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#D71440] px-5 font-montserrat text-[16px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#D71440] hover:shadow-lg">
                 <img
                   src="/icons/saveOption.png"
