@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useSearchParams } from "react-router-dom";
@@ -45,11 +45,8 @@ const ExplorePage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"rows" | "grid">("grid");
-  const [currentPage, setCurrentPage] = useState(2);
-  const totalPages = 3;
-  const [selectedFilterTags, setSelectedFilterTags] = useState<string[]>([
-    "Performing Arts",
-  ]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedFilterTags, setSelectedFilterTags] = useState<string[]>([]);
   const [showCategories, setShowCategories] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
   const [showLifestyle, setShowLifestyle] = useState(false);
@@ -70,7 +67,28 @@ const ExplorePage: React.FC = () => {
     },
   });
 
-  const filteredCCAs = ccas?.filter((cca) => {
+  const availableTags = useMemo(() => {
+    const tags = new Set<string>();
+    (ccas ?? []).forEach((cca) => {
+      (cca.tags ?? []).forEach((tag) => {
+        const normalized = tag.trim();
+        if (normalized) tags.add(normalized);
+      });
+    });
+    return Array.from(tags).sort((a, b) => a.localeCompare(b));
+  }, [ccas]);
+
+  const tagGroups = useMemo(() => {
+    const chunkSize = Math.max(1, Math.ceil(availableTags.length / 4));
+    return {
+      categories: availableTags.slice(0, chunkSize),
+      goals: availableTags.slice(chunkSize, chunkSize * 2),
+      lifestyle: availableTags.slice(chunkSize * 2, chunkSize * 3),
+      appStatus: availableTags.slice(chunkSize * 3),
+    };
+  }, [availableTags]);
+
+  const filteredCCAs = (ccas ?? []).filter((cca) => {
     const matchesCategory =
       selectedCategory === "All" || cca.category === selectedCategory;
 
@@ -79,11 +97,37 @@ const ExplorePage: React.FC = () => {
       cca.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       cca.tags?.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    return matchesCategory && matchesSearch;
+    const matchesTags =
+      selectedFilterTags.length === 0 ||
+      selectedFilterTags.some((selectedTag) =>
+        (cca.tags ?? []).some(
+          (tag) => tag.toLowerCase() === selectedTag.toLowerCase()
+        )
+      );
+
+    return matchesCategory && matchesSearch && matchesTags;
   });
 
-  const sourceCard = filteredCCAs?.[0] || fallbackCard;
-  const repeatedCards = Array.from({ length: 12 }, () => sourceCard);
+  const itemsPerPage = viewMode === "grid" ? 12 : 6;
+  const totalResults = filteredCCAs.length;
+  const totalPages = Math.max(1, Math.ceil(totalResults / itemsPerPage));
+
+  const paginatedCCAs = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredCCAs.slice(start, start + itemsPerPage);
+  }, [filteredCCAs, currentPage, itemsPerPage]);
+
+  const showingCount = paginatedCCAs.length;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, viewMode, selectedFilterTags]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const handleCategoryChange = (cat: string) => {
     setSelectedCategory(cat);
@@ -165,7 +209,7 @@ const ExplorePage: React.FC = () => {
       </button>
 
       <span className="ml-auto font-montserrat text-[14px] font-semibold underline text-[#8C8C8C]">
-        Showing 12 of 200 Results
+        Showing {showingCount} of {totalResults} Results
       </span>
     </div>
   );
@@ -247,18 +291,7 @@ const ExplorePage: React.FC = () => {
                     <div className="mb-3 mt-1 h-px bg-[#181C62]" />
                     {showCategories && (
                       <div className="mt-3 grid grid-cols-2 gap-2">
-                        {[
-                          "Sports",
-                          "Performing Arts",
-                          "Service",
-                          "Academics",
-                          "Arts",
-                          "Orientation",
-                          "Cultural",
-                          "Faith-Based",
-                          "Competition-Based",
-                          "Recreational",
-                        ].map((tag) => (
+                        {tagGroups.categories.map((tag) => (
                           <button
                             key={tag}
                             type="button"
@@ -272,6 +305,11 @@ const ExplorePage: React.FC = () => {
                             {tag}
                           </button>
                         ))}
+                        {tagGroups.categories.length === 0 && (
+                          <p className="col-span-2 text-xs text-[#8C8C8C]">
+                            No tags available.
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -292,14 +330,7 @@ const ExplorePage: React.FC = () => {
                     <div className="mb-3 mt-1 h-px bg-[#181C62]" />
                     {showGoals && (
                       <div className="mt-3 grid grid-cols-2 gap-2">
-                        {[
-                          "Leadership",
-                          "Social Connection",
-                          "Skill Development",
-                          "Build Portfolio",
-                          "Staying Active",
-                          "Giving Back",
-                        ].map((tag) => (
+                        {tagGroups.goals.map((tag) => (
                           <button
                             key={tag}
                             type="button"
@@ -313,6 +344,11 @@ const ExplorePage: React.FC = () => {
                             {tag}
                           </button>
                         ))}
+                        {tagGroups.goals.length === 0 && (
+                          <p className="col-span-2 text-xs text-[#8C8C8C]">
+                            No tags available.
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -333,13 +369,7 @@ const ExplorePage: React.FC = () => {
                     <div className="mb-3 mt-1 h-px bg-[#181C62]" />
                     {showLifestyle && (
                       <div className="mt-3 grid grid-cols-2 gap-2">
-                        {[
-                          "Low Commitment",
-                          "Flexible Schedule",
-                          "Beginner Friendly",
-                          "Team-Based",
-                          "Weekend-Based",
-                        ].map((tag) => (
+                        {tagGroups.lifestyle.map((tag) => (
                           <button
                             key={tag}
                             type="button"
@@ -353,6 +383,11 @@ const ExplorePage: React.FC = () => {
                             {tag}
                           </button>
                         ))}
+                        {tagGroups.lifestyle.length === 0 && (
+                          <p className="col-span-2 text-xs text-[#8C8C8C]">
+                            No tags available.
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -373,7 +408,7 @@ const ExplorePage: React.FC = () => {
                     <div className="mb-3 mt-1 h-px bg-[#181C62]" />
                     {showAppStatus && (
                       <div className="mt-3 grid grid-cols-2 gap-2">
-                        {["Open", "Closing Soon", "Closed"].map((tag) => (
+                        {tagGroups.appStatus.map((tag) => (
                           <button
                             key={tag}
                             type="button"
@@ -387,6 +422,11 @@ const ExplorePage: React.FC = () => {
                             {tag}
                           </button>
                         ))}
+                        {tagGroups.appStatus.length === 0 && (
+                          <p className="col-span-2 text-xs text-[#8C8C8C]">
+                            No tags available.
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -402,21 +442,37 @@ const ExplorePage: React.FC = () => {
 
                 <div>
                   {controlsBar}
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    {repeatedCards.map((cca, index) => (
-                      <CCACard key={`${cca.id}-repeat-${index}`} cca={cca} />
-                    ))}
-                  </div>
+                  {paginatedCCAs.length === 0 ? (
+                    <div className="rounded-xl border border-border bg-card p-6 text-center font-montserrat text-sm text-[#8C8C8C]">
+                      No CCAs match your current filters.
+                    </div>
+                  ) : (
+                    <div className={`grid grid-cols-1 gap-6 ${viewMode === "grid" ? "sm:grid-cols-2" : ""}`}>
+                      {paginatedCCAs.map((cca) => (
+                        <CCACard key={cca.id} cca={cca} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
               <>
                 {controlsBar}
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {repeatedCards.map((cca, index) => (
-                    <CCACard key={`${cca.id}-repeat-${index}`} cca={cca} />
-                  ))}
-                </div>
+                {paginatedCCAs.length === 0 ? (
+                  <div className="rounded-xl border border-border bg-card p-6 text-center font-montserrat text-sm text-[#8C8C8C]">
+                    No CCAs match your current filters.
+                  </div>
+                ) : (
+                  <div
+                    className={`grid grid-cols-1 gap-6 ${
+                      viewMode === "grid" ? "sm:grid-cols-2 lg:grid-cols-3" : ""
+                    }`}
+                  >
+                    {paginatedCCAs.map((cca) => (
+                      <CCACard key={cca.id} cca={cca} />
+                    ))}
+                  </div>
+                )}
               </>
             )}
 
