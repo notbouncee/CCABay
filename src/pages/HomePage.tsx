@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Bookmark } from "lucide-react";
+import CCACard from "@/components/CCACard";
 
 const CATEGORY_IMAGES = {
   academics: "/images/compAcad.png",
@@ -134,7 +135,20 @@ const HomePage: React.FC = () => {
     },
   });
 
+  const handleToggleSave = (ccaId: string) => {
+    const isSaved = wishlistIds?.includes(ccaId) || false;
+    toggleSaveMutation.mutate({ ccaId, isSaved });
+  };
 
+  // Fetch real CCAs for featured section
+  const { data: featuredCCAs } = useQuery({
+    queryKey: ["featured-ccas"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("ccas").select("*").limit(6);
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const categories = [
     {
@@ -345,11 +359,13 @@ const HomePage: React.FC = () => {
       <section className="bg-primary py-10 md:py-12">
         <div className="w-full px-6 md:px-10 lg:px-12">
           <h2 className="mb-6 font-anton text-[clamp(30px,3.2vw,50px)] text-accent">{user ? "Recommended For You" : "Featured CCAs"}</h2>
-          <div className="grid grid-cols-3 gap-[22px]">
-            {Array.from({ length: 6 }).map((_, idx) => (
-              <FeaturedStaticCard
-                key={`featured-static-${idx}`}
-                isLoggedIn={Boolean(user)}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {featuredCCAs?.map((cca) => (
+              <CCACard
+                key={cca.id}
+                cca={cca}
+                isSaved={wishlistIds?.includes(cca.id) || false}
+                onToggleSave={handleToggleSave}
               />
             ))}
           </div>
