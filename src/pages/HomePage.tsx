@@ -30,6 +30,7 @@ const FeaturedStaticCard: React.FC<{
   onToggleSave?: () => void;
 }> = ({ isLoggedIn, isSaved = false, onToggleSave }) => {
   const navigate = useNavigate();
+  const [localSaved, setLocalSaved] = useState(isSaved);
 
   const handleCardSelect = () => {
     if (!isLoggedIn) {
@@ -46,6 +47,7 @@ const FeaturedStaticCard: React.FC<{
       navigate("/login");
       return;
     }
+    setLocalSaved(!localSaved);
     if (onToggleSave) {
       onToggleSave();
     }
@@ -59,11 +61,11 @@ const FeaturedStaticCard: React.FC<{
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.06)_28%,rgba(0,0,0,0.28)_72%,rgba(0,0,0,0.46)_100%)]" />
           <button
             type="button"
-            aria-label={isSaved ? "Saved CCA" : "Save CCA"}
+            aria-label={localSaved ? "Saved CCA" : "Save CCA"}
             onClick={handleSaveClick}
             className="group absolute right-[clamp(6px,1vw,12px)] top-[clamp(6px,1vw,12px)] flex h-[clamp(16px,2vw,32px)] w-[clamp(16px,2vw,32px)] items-center justify-center rounded-md"
           >
-            <Bookmark className={`h-full w-full ${isSaved ? "fill-[#FFD000] text-[#FFD000]" : "text-white"}`} />
+            <Bookmark className={`h-full w-full ${localSaved ? "fill-[#FFD000] text-[#FFD000]" : "text-white"}`} />
           </button>
           <h3 className="absolute bottom-[clamp(6px,1vw,12px)] left-[clamp(8px,1.2vw,16px)] font-anton text-[clamp(14px,2.2vw,24px)] leading-none text-white">Contemp{"{"}minated{"}"}</h3>
         </div>
@@ -132,12 +134,7 @@ const HomePage: React.FC = () => {
     },
   });
 
-  const staticCCAId = "fallback-contemp";
-  const isStaticSaved = wishlistIds?.includes(staticCCAId) || false;
 
-  const handleToggleStaticSave = () => {
-    toggleSaveMutation.mutate({ ccaId: staticCCAId, isSaved: isStaticSaved });
-  };
 
   const categories = [
     {
@@ -353,8 +350,6 @@ const HomePage: React.FC = () => {
               <FeaturedStaticCard
                 key={`featured-static-${idx}`}
                 isLoggedIn={Boolean(user)}
-                isSaved={isStaticSaved}
-                onToggleSave={handleToggleStaticSave}
               />
             ))}
           </div>
