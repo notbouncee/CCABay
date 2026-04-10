@@ -369,6 +369,7 @@ const HomePage: React.FC = () => {
                 cca={cca}
                 isSaved={wishlistIds?.includes(cca.id) || false}
                 onToggleSave={handleToggleSave}
+                isClickable={cca.name === "Contemp{minated}"}
               />
             ))}
           </div>
