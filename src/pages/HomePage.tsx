@@ -154,16 +154,19 @@ const HomePage: React.FC = () => {
     {
       name: "Competition & Academics",
       query: "Competition & Academics",
+      categoryTags: ["Competition-Based", "Academics"],
       image: CATEGORY_IMAGES.academics,
     },
     {
       name: "Performance & Creativity",
       query: "Performance & Creativity",
+      categoryTags: ["Performing Arts", "Arts"],
       image: CATEGORY_IMAGES.creativity,
     },
     {
       name: "Community & Lifestyle",
       query: "Community & Lifestyle",
+      categoryTags: ["Service", "Recreational"],
       image: CATEGORY_IMAGES.community,
     },
   ];
@@ -337,7 +340,7 @@ const HomePage: React.FC = () => {
           {categories.map((cat) => (
             <Link
               key={cat.name}
-              to={`/explore?category=${encodeURIComponent(cat.query)}`}
+              to={`/explore?category_tags=${encodeURIComponent(cat.categoryTags.join(","))}`}
               className="block w-full max-w-[469px]"
             >
               <div className="group relative h-[128px] overflow-hidden rounded-2xl bg-black shadow-sm transition hover:shadow-md">

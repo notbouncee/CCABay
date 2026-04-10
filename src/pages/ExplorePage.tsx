@@ -17,6 +17,14 @@ const goalsFilterOptions = ["Leadership", "Social Connection", "Skill Developmen
 const lifestyleFilterOptions = ["Low Commitment", "Flexible Schedule", "Beginner Friendly", "Team-Based", "Weekend-Based"];
 const appStatusFilterOptions = ["Open", "Closing Soon", "Closed"];
 
+const parseCategoryTagsParam = (raw: string | null) => {
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0);
+};
+
 const ExploreCCARow: React.FC<{
   cca: Tables<"ccas">;
   isSaved: boolean;
@@ -225,13 +233,14 @@ const ExplorePage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get("category") || "All";
+  const initialFilterTags = parseCategoryTagsParam(searchParams.get("category_tags"));
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"rows" | "grid">("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const cardsPerPage = 12;
-  const [selectedFilterTags, setSelectedFilterTags] = useState<string[]>([]);
+  const [selectedFilterTags, setSelectedFilterTags] = useState<string[]>(initialFilterTags);
   const [showCategories, setShowCategories] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
   const [showLifestyle, setShowLifestyle] = useState(false);
@@ -288,15 +297,12 @@ const ExplorePage: React.FC = () => {
     const otherTags = parseTagField((cca as Tables<"ccas"> & { other_tags?: string[] | string | null }).other_tags)
       .map((tag) => tag.toLowerCase());
 
-    const matchesCategoryTags =
-      selectedCategoryTags.length === 0 ||
-      selectedCategoryTags.some((tag) => categoryTags.includes(tag.toLowerCase()));
+    const hasAnySidebarFilter = selectedFilterTags.length > 0;
+    const matchesCategoryTags = selectedCategoryTags.some((tag) => categoryTags.includes(tag.toLowerCase()));
+    const matchesOtherTags = selectedOtherTags.some((tag) => otherTags.includes(tag.toLowerCase()));
+    const matchesSidebarFilters = !hasAnySidebarFilter || matchesCategoryTags || matchesOtherTags;
 
-    const matchesOtherTags =
-      selectedOtherTags.length === 0 ||
-      selectedOtherTags.some((tag) => otherTags.includes(tag.toLowerCase()));
-
-    return matchesCategory && matchesSearch && matchesCategoryTags && matchesOtherTags;
+    return matchesCategory && matchesSearch && matchesSidebarFilters;
   }) ?? [], [ccas, selectedCategory, searchQuery, selectedCategoryTags, selectedOtherTags]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCCAs.length / cardsPerPage));
@@ -308,6 +314,13 @@ const ExplorePage: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedCategory, searchQuery, selectedFilterTags]);
+
+  useEffect(() => {
+    const urlCategory = searchParams.get("category") || "All";
+    const urlFilterTags = parseCategoryTagsParam(searchParams.get("category_tags"));
+    setSelectedCategory(urlCategory);
+    setSelectedFilterTags(urlFilterTags);
+  }, [searchParams]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
