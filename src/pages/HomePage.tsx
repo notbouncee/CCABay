@@ -340,7 +340,7 @@ const HomePage: React.FC = () => {
           {categories.map((cat) => (
             <Link
               key={cat.name}
-              to={`/explore?category_tags=${encodeURIComponent(cat.categoryTags.join(","))}`}
+              to={`/explore?category_tags=${encodeURIComponent(cat.categoryTags.join(","))}&category_label=${encodeURIComponent(cat.name)}`}
               className="block w-full max-w-[469px]"
             >
               <div className="group relative h-[128px] overflow-hidden rounded-2xl bg-black shadow-sm transition hover:shadow-md">

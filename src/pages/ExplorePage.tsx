@@ -232,8 +232,11 @@ const ExplorePage: React.FC = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialCategory = searchParams.get("category") || "All";
-  const initialFilterTags = parseCategoryTagsParam(searchParams.get("category_tags"));
+  const categoryParam = searchParams.get("category");
+  const categoryTagsParam = searchParams.get("category_tags");
+  const initialCategory = categoryParam || "All";
+  const initialFilterTags = parseCategoryTagsParam(categoryTagsParam);
+  const categoryLabel = searchParams.get("category_label");
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -246,7 +249,15 @@ const ExplorePage: React.FC = () => {
   const [showLifestyle, setShowLifestyle] = useState(false);
   const [showAppStatus, setShowAppStatus] = useState(false);
 
+  const clearCategoryLabel = () => {
+    if (!searchParams.get("category_label")) return;
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("category_label");
+    setSearchParams(nextParams);
+  };
+
   const toggleFilterTag = (tag: string) => {
+    clearCategoryLabel();
     setSelectedFilterTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
@@ -316,11 +327,11 @@ const ExplorePage: React.FC = () => {
   }, [selectedCategory, searchQuery, selectedFilterTags]);
 
   useEffect(() => {
-    const urlCategory = searchParams.get("category") || "All";
-    const urlFilterTags = parseCategoryTagsParam(searchParams.get("category_tags"));
+    const urlCategory = categoryParam || "All";
+    const urlFilterTags = parseCategoryTagsParam(categoryTagsParam);
     setSelectedCategory(urlCategory);
     setSelectedFilterTags(urlFilterTags);
-  }, [searchParams]);
+  }, [categoryParam, categoryTagsParam]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -489,6 +500,13 @@ const ExplorePage: React.FC = () => {
 
       {/* Category filters */}
       <div className="px-6 pb-10 pt-6 md:px-10 lg:px-12">
+        {categoryLabel && (
+          <div className="mb-4 flex items-center gap-2">
+            <span className="rounded-full bg-[rgba(24,28,98,0.12)] px-4 py-1.5 font-montserrat text-[13px] font-semibold text-[#181C62]">
+              Showing category: {categoryLabel}
+            </span>
+          </div>
+        )}
         {/* CCA Grid */}
         {isLoading ? (
           <div className="flex justify-center py-20">
@@ -626,7 +644,10 @@ const ExplorePage: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={() => setSelectedFilterTags([])}
+                    onClick={() => {
+                      clearCategoryLabel();
+                      setSelectedFilterTags([]);
+                    }}
                     className="mx-auto mt-10 block w-[160px] rounded-xl border border-[#181C62] py-1 text-[12px] font-semibold text-[#181C62] transition-colors hover:bg-[#181C62] hover:text-white"
                   >
                     Remove All Filters
