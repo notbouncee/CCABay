@@ -26,7 +26,7 @@ const Navbar: React.FC = () => {
     "brightness(0) saturate(100%) invert(86%) sepia(80%) saturate(1330%) hue-rotate(349deg) brightness(104%) contrast(103%)";
 
   return (
-    <nav className="sticky top-0 z-50 bg-primary shadow-lg">
+    <nav className="sticky top-0 z-[9999] bg-primary shadow-lg">
       <div className="mx-auto flex h-[78px] w-full items-center justify-between px-6 md:px-10 lg:px-12">
         {/* Logo */}
         <Link to="/" className="flex items-center leading-none">

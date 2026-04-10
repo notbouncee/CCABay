@@ -94,6 +94,20 @@ const PlannerPage: React.FC = () => {
     enabled: !!user,
   });
 
+  // Fetch user's existing applications
+  const { data: existingApplications } = useQuery({
+    queryKey: ["user-applications"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("applications")
+        .select("cca_id")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return data.map((app) => app.cca_id);
+    },
+    enabled: !!user,
+  });
+
   // Filter CCAs for search
   const filteredCCAs = ccas?.filter((cca) =>
     cca.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -101,6 +115,16 @@ const PlannerPage: React.FC = () => {
 
   // Toggle CCA selection
   const toggleCCA = (ccaId: string) => {
+    // Check if already applied
+    if (existingApplications?.includes(ccaId)) {
+      toast({
+        title: "Already Applied",
+        description: "You have already applied for this CCA",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const next = new Set(selectedCCAIds);
     if (next.has(ccaId)) next.delete(ccaId);
     else next.add(ccaId);
@@ -301,19 +325,25 @@ const PlannerPage: React.FC = () => {
 
               {/* CCA list */}
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                {filteredCCAs?.map((cca) => (
-                  <button
-                    key={cca.id}
-                    onClick={() => toggleCCA(cca.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm font-montserrat transition-colors ${
-                      selectedCCAIds.has(cca.id)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary hover:bg-secondary/80 text-foreground"
-                    }`}
-                  >
-                    {cca.name}
-                  </button>
-                ))}
+                {filteredCCAs?.map((cca) => {
+                  const isAlreadyApplied = existingApplications?.includes(cca.id);
+                  return (
+                    <button
+                      key={cca.id}
+                      onClick={() => toggleCCA(cca.id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-montserrat transition-colors ${
+                        isAlreadyApplied
+                          ? "bg-secondary/40 text-destructive cursor-not-allowed"
+                          : selectedCCAIds.has(cca.id)
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary hover:bg-secondary/80 text-foreground"
+                      }`}
+                      disabled={isAlreadyApplied}
+                    >
+                      {cca.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -335,8 +365,18 @@ const PlannerPage: React.FC = () => {
               variant="accent"
               className="w-full font-montserrat"
               size="lg"
-              disabled={selectedCCAIds.size === 0}
-              onClick={() => submitMutation.mutate()}
+              disabled={selectedCCAIds.size === 0 || conflicts.length > 0}
+              onClick={() => {
+                if (conflicts.length > 0) {
+                  toast({
+                    title: "Can't Apply Due To Time Clashes",
+                    description: "Please resolve all time conflicts before applying",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                submitMutation.mutate();
+              }}
             >
               <Send className="h-4 w-4" />
               Apply Now
