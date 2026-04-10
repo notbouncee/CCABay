@@ -1,12 +1,21 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 // CCA detail page showing all information and reviews
 const CCADetailPage: React.FC = () => {
-  const [isSaved, setIsSaved] = useState(true);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [ccaId, setCcaId] = useState<string | null>(null);
+  const ccaName = "Contemp{minated}";
 
   const tags = [
     "Performing Arts",
@@ -16,6 +25,85 @@ const CCADetailPage: React.FC = () => {
     "Team-Based",
     "Beginner-Friendly",
   ];
+
+  useEffect(() => {
+    const loadCCAId = async () => {
+      const { data, error } = await supabase
+        .from("ccas")
+        .select("id")
+        .eq("name", ccaName)
+        .maybeSingle();
+
+      if (error) {
+        return;
+      }
+
+      setCcaId(data?.id ?? null);
+    };
+
+    loadCCAId();
+  }, []);
+
+  useEffect(() => {
+    const loadSavedState = async () => {
+      if (!user || !ccaId) {
+        setIsSaved(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("cca_wishlist")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("cca_id", ccaId)
+        .maybeSingle();
+
+      if (error) {
+        return;
+      }
+
+      setIsSaved(Boolean(data));
+    };
+
+    loadSavedState();
+  }, [user, ccaId]);
+
+  const handleToggleSave = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    if (!ccaId || isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+
+    if (isSaved) {
+      const { error } = await supabase
+        .from("cca_wishlist")
+        .delete()
+        .eq("cca_id", ccaId)
+        .eq("user_id", user.id);
+
+      if (!error) {
+        setIsSaved(false);
+        toast({ title: "Removed from saved CCAs" });
+      }
+    } else {
+      const { error } = await supabase
+        .from("cca_wishlist")
+        .insert({ cca_id: ccaId, user_id: user.id });
+
+      if (!error) {
+        setIsSaved(true);
+        toast({ title: "Saved to wishlist!" });
+      }
+    }
+
+    setIsSaving(false);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -50,7 +138,8 @@ const CCADetailPage: React.FC = () => {
           <div className="flex gap-3">
             <Button
               variant={isSaved ? "gold" : "accent"}
-              onClick={() => setIsSaved((prev) => !prev)}
+              onClick={handleToggleSave}
+              disabled={isSaving || !ccaId}
               className="transition-all duration-200 hover:-translate-y-px hover:shadow-lg"
             >
               <img

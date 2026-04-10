@@ -8,18 +8,60 @@ interface CCACardProps {
   cca: Tables<"ccas">;
   isSaved?: boolean;
   onToggleSave?: (ccaId: string) => void;
+  isClickable?: boolean;
 }
 
-const CCACard: React.FC<CCACardProps> = ({ cca, isSaved = false, onToggleSave }) => {
-  const primaryTag = cca.category === "Performance & Creativity"
-    ? "Performing Arts"
-    : cca.category === "Competition & Academics"
-      ? "Competition"
-      : cca.category === "Community & Lifestyle"
-        ? "Community"
-        : cca.category;
+const CCACard: React.FC<CCACardProps> = ({ cca, isSaved = false, onToggleSave, isClickable = true }) => {
+  const parseCategoryTags = () => {
+    const rawCategoryTags = (cca as Tables<"ccas"> & { category_tags?: string[] | string | null }).category_tags;
 
-  const secondaryTag = cca.tags?.[0] || "Recreational";
+    if (Array.isArray(rawCategoryTags)) {
+      return rawCategoryTags.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0);
+    }
+
+    if (typeof rawCategoryTags === "string") {
+      try {
+        const parsed = JSON.parse(rawCategoryTags);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0);
+        }
+      } catch {
+        return [];
+      }
+    }
+
+    return [];
+  };
+
+  const categoryTags = parseCategoryTags();
+  const dbTags = (cca.tags ?? []).filter(Boolean);
+  const primaryTag = categoryTags[0] || dbTags[0] || cca.category;
+  const secondaryTag = categoryTags[1] || dbTags[1] || cca.category;
+
+  const parseOtherTags = () => {
+    const rawOtherTags = (cca as Tables<"ccas"> & { other_tags?: string[] | string | null }).other_tags;
+
+    if (Array.isArray(rawOtherTags)) {
+      return rawOtherTags.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0);
+    }
+
+    if (typeof rawOtherTags === "string") {
+      try {
+        const parsed = JSON.parse(rawOtherTags);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0);
+        }
+      } catch {
+        return [];
+      }
+    }
+
+    return [];
+  };
+
+  const otherTags = parseOtherTags();
+  const isApplicationClosed = otherTags.some((tag) => tag.trim().toLowerCase() === "closed");
+  const isClosingSoon = otherTags.some((tag) => tag.trim().toLowerCase() === "closing soon");
   const commitment = cca.weekly_commitment || "Medium";
   const hallPoints = cca.hall_points ?? 3;
 
@@ -34,7 +76,43 @@ const CCACard: React.FC<CCACardProps> = ({ cca, isSaved = false, onToggleSave })
     });
   };
 
-  const trialDate = formatTryoutDate(cca.tryout_dates);
+  const trialDateText = (cca as Tables<"ccas"> & { trial_date?: string | null }).trial_date;
+  const trialDate = trialDateText && trialDateText.trim().length > 0
+    ? trialDateText
+    : formatTryoutDate(cca.tryout_dates);
+
+  const parseDisplayDate = (rawDate: string) => {
+    const parsed = new Date(rawDate);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  };
+
+  const getApplicationClosingInfo = () => {
+    const referenceToday = new Date("2026-08-10T00:00:00");
+    const candidateDate =
+      (trialDateText && parseDisplayDate(trialDateText)) ||
+      (cca.tryout_dates && parseDisplayDate(cca.tryout_dates)) ||
+      (cca.audition_dates && parseDisplayDate(cca.audition_dates));
+
+    if (!candidateDate) {
+      return null;
+    }
+
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const diffInDays = Math.ceil((candidateDate.getTime() - referenceToday.getTime()) / msPerDay);
+    const formattedDate = candidateDate.toLocaleDateString("en-SG", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+
+    return {
+      formattedDate,
+      daysLeft: Math.max(diffInDays, 0),
+    };
+  };
+
+  const closingInfo = isClosingSoon ? getApplicationClosingInfo() : null;
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -44,14 +122,16 @@ const CCACard: React.FC<CCACardProps> = ({ cca, isSaved = false, onToggleSave })
     }
   };
 
-  return (
-    <Link to={`/cca/${cca.id}`} className="group block">
+  const cardContent = (
+    <>
       <article className="overflow-hidden rounded-[20px] bg-white transition-all duration-200 group-hover:-translate-y-0.5" style={{ boxShadow: "0 0 10px 0 rgba(0,0,0,0.10)" }}>
-        <div className="relative h-[148px] overflow-hidden">
+        <div className="relative h-[148px] overflow-hidden bg-[#E6E6E6]">
           {cca.image_url ? (
             <img src={cca.image_url} alt={cca.name} className="h-full w-full object-cover" />
           ) : (
-            <img src="/images/contemp.png" alt={cca.name} className="h-full w-full object-cover" />
+            <div className="flex h-full w-full items-center justify-center font-montserrat text-[12px] font-semibold text-[#8C8C8C]">
+              No image
+            </div>
           )}
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.06)_28%,rgba(0,0,0,0.28)_72%,rgba(0,0,0,0.46)_100%)]" />
           <h3 className="absolute bottom-3 left-4 font-anton text-[24px] leading-none text-white">
@@ -94,16 +174,49 @@ const CCACard: React.FC<CCACardProps> = ({ cca, isSaved = false, onToggleSave })
             {cca.description}
           </p>
 
-          <div className="mt-3 flex items-center gap-2 text-primary">
-            <img src="/icons/dates.png" alt="Trials" className="h-4 w-4 object-contain" />
-            <span className="font-montserrat text-[12px] font-bold leading-none">
-              Trials: {trialDate}
-            </span>
+          <div
+            className={`mt-3 flex items-center gap-2 ${
+              isApplicationClosed
+                ? "text-[#8C8C8C]"
+                : isClosingSoon
+                  ? "text-[#23286F]"
+                  : "text-primary"
+            }`}
+          >
+            <img
+              src="/icons/dates.png"
+              alt="Trials"
+              className={`h-4 w-4 object-contain ${isApplicationClosed ? "opacity-60" : ""}`}
+            />
+            {isApplicationClosed ? (
+              <span className="font-montserrat text-[12px] font-bold leading-none text-[#8C8C8C]">
+                Application Closed
+              </span>
+            ) : isClosingSoon && closingInfo ? (
+              <span className="font-montserrat text-[12px] font-bold leading-none text-[#23286F]">
+                {`Application Closes: ${closingInfo.formattedDate} `}
+                <span className="text-[#D71440]">({closingInfo.daysLeft} {closingInfo.daysLeft === 1 ? "day" : "days"} left)</span>
+              </span>
+            ) : (
+              <span className="font-montserrat text-[12px] font-bold leading-none">
+                Trials: {trialDate}
+              </span>
+            )}
           </div>
         </div>
       </article>
-    </Link>
+    </>
   );
+
+  if (isClickable) {
+    return (
+      <Link to={`/cca/${cca.id}`} className="group block">
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return <div className="group block">{cardContent}</div>;
 };
 
 export default CCACard;
