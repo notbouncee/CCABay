@@ -121,7 +121,7 @@ const MatchMePage: React.FC = () => {
           <>
             {/* CCA Card */}
             <div
-              className={`w-[95vw] md:w-[65vw] max-w-[1200px] bg-card rounded-2xl shadow-2xl overflow-hidden transition-all ${
+              className={`w-[99vw] md:w-[80vw] max-w-[1500px] bg-card rounded-2xl shadow-2xl overflow-hidden transition-all ${
                 swipeDirection === "left" ? "animate-swipe-left" :
                 swipeDirection === "right" ? "animate-swipe-right" : ""
               }`}
