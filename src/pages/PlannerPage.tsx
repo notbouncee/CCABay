@@ -34,6 +34,8 @@ const PlannerPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCCAIds, setSelectedCCAIds] = useState<Set<string>>(new Set());
+  // View mode state for CCA list
+  const [viewMode, setViewMode] = useState<'all' | 'saved'>('all');
 
   // Fetch user's timetable
   const { data: timetable } = useQuery({
@@ -323,9 +325,27 @@ const PlannerPage: React.FC = () => {
                 />
               </div>
 
-              {/* CCA list */}
+              {/* View toggle: All CCAs or Saved CCAs */}
+              <div className="flex gap-2 mb-3">
+                <Button
+                  variant={viewMode === "all" ? "accent" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("all")}
+                >
+                  All CCAs
+                </Button>
+                <Button
+                  variant={viewMode === "saved" ? "accent" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("saved")}
+                  disabled={!savedCCAs}
+                >
+                  Saved CCAs
+                </Button>
+              </div>
+
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                {filteredCCAs?.map((cca) => {
+                {(viewMode === "all" ? filteredCCAs : filteredCCAs?.filter((cca) => savedCCAs?.includes(cca.id)))?.map((cca) => {
                   const isAlreadyApplied = existingApplications?.includes(cca.id);
                   return (
                     <button
@@ -344,6 +364,7 @@ const PlannerPage: React.FC = () => {
                     </button>
                   );
                 })}
+
               </div>
             </div>
 

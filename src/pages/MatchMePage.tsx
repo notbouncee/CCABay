@@ -169,7 +169,7 @@ const MatchMePage: React.FC = () => {
                 onClick={() => handleSwipe("left")}
                 className="w-14 h-14 rounded-full bg-card shadow-lg flex items-center justify-center hover:scale-110 transition-transform border-2 border-muted"
               >
-                <X className="h-7 w-7 text-muted-foreground" />
+                <X className="h-7 w-7" style={{ color: '#181C62' }} />
               </button>
 
               {/* More info toggle */}

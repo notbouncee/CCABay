@@ -363,15 +363,19 @@ const HomePage: React.FC = () => {
         <div className="w-full px-6 md:px-10 lg:px-12">
           <h2 className="mb-6 font-anton text-[clamp(30px,3.2vw,50px)] text-accent">{user ? "Recommended For You" : "Featured CCAs"}</h2>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredCCAs?.map((cca) => (
-              <CCACard
-                key={cca.id}
-                cca={cca}
-                isSaved={wishlistIds?.includes(cca.id) || false}
-                onToggleSave={handleToggleSave}
-                isClickable={cca.name === "Contemp{minated}"}
-              />
-            ))}
+            {(featuredCCAs && featuredCCAs.length > 0)
+              ? featuredCCAs.map((cca) => (
+                  <CCACard
+                    key={cca.id}
+                    cca={cca}
+                    isSaved={user && wishlistIds ? wishlistIds.includes(cca.id) : false}
+                    onToggleSave={handleToggleSave}
+                    isClickable={cca.name === "Contemp{minated}"}
+                  />
+                ))
+              : Array.from({ length: 3 }).map((_, idx) => (
+                  <div key={idx} className="rounded-[20px] bg-[#23245B] h-[260px] animate-pulse" />
+                ))}
           </div>
           <div className="mt-7 text-center">
             <Link to="/explore">

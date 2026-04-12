@@ -25,6 +25,9 @@ const Navbar: React.FC = () => {
   const yellowIconFilter =
     "brightness(0) saturate(100%) invert(86%) sepia(80%) saturate(1330%) hue-rotate(349deg) brightness(104%) contrast(103%)";
 
+  // Dropdown state for profile icon (desktop)
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
+
   return (
     <nav className="sticky top-0 z-[9999] bg-primary shadow-lg">
       <div className="mx-auto flex h-[78px] w-full items-center justify-between px-6 md:px-10 lg:px-12">
@@ -78,28 +81,47 @@ const Navbar: React.FC = () => {
             />
           </button>
 
-          <Link to={user ? "/profile" : "/login"} aria-label="Profile">
-            <img
-              src={user ? "/icons/profileLoggedIn.png" : "/icons/profile.png"}
-              alt="Profile"
-              className={iconClass}
-              style={{
-                filter:
-                  location.pathname === "/profile" ? yellowIconFilter : whiteIconFilter,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.filter = yellowIconFilter;
-              }}
-              onMouseLeave={(e) => {
-                if (location.pathname !== "/profile") {
-                  e.currentTarget.style.filter = whiteIconFilter;
-                }
-              }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.filter = yellowIconFilter;
-              }}
-            />
-          </Link>
+          {/* Profile dropdown (desktop) */}
+          {/* Profile dropdown (desktop) with hover fix */}
+          <div style={{ position: 'relative', minWidth: 48 }}>
+            <div
+              onMouseEnter={() => setDropdownOpen(true)}
+              onMouseLeave={() => setDropdownOpen(false)}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}
+            >
+              <Link to={user ? "/profile" : "/login"} aria-label="Profile">
+                <img
+                  src={user ? "/icons/profileLoggedIn.png" : "/icons/profile.png"}
+                  alt="Profile"
+                  className={iconClass}
+                  style={{
+                    filter:
+                      location.pathname === "/profile" ? yellowIconFilter : whiteIconFilter,
+                  }}
+                />
+              </Link>
+              {/* Invisible hover bridge between icon and dropdown */}
+              {/* Removed vertical hover bridge for seamless dropdown */}
+              {/* Dropdown on hover if logged in */}
+              {user && dropdownOpen && (
+                <div
+                  className="min-w-[140px] rounded-md bg-white shadow-lg border border-gray-200 transition-all z-50 flex flex-col"
+                  style={{ position: 'absolute', right: 0, top: '100%', marginTop: 0, paddingTop: 0 }}
+                  onMouseEnter={() => setDropdownOpen(true)}
+                  onMouseLeave={() => setDropdownOpen(false)}
+                >
+                  <button
+                    onClick={signOut}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-[#D71440] hover:text-white group rounded-md border-0 bg-transparent shadow-none focus:outline-none"
+                    tabIndex={0}
+                  >
+                    <LogOut className="h-5 w-5 group-hover:text-white" />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
 
           <Link to={user ? "/saved" : "/login"} aria-label="Saved CCAs">
             <img
