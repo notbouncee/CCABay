@@ -35,7 +35,7 @@ const PlannerPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCCAIds, setSelectedCCAIds] = useState<Set<string>>(new Set());
   // View mode state for CCA list
-  const [viewMode, setViewMode] = useState<'all' | 'saved'>('all');
+  const [viewMode, setViewMode] = useState<'all' | 'saved' | 'filter'>('all');
 
   // Fetch user's timetable
   const { data: timetable } = useQuery({
@@ -310,98 +310,109 @@ const PlannerPage: React.FC = () => {
 
           {/* Right: CCA Selection */}
           <div className="space-y-4">
-            {/* View toggles */}
-            <div className="bg-card rounded-xl p-4 shadow-md">
-              <h3 className="font-anton text-lg text-foreground mb-3">Select CCAs</h3>
-
-              {/* Search */}
-              <div className="relative mb-3">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search CCAs..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 text-sm"
-                />
-              </div>
-
-              {/* View toggle: All CCAs or Saved CCAs */}
-              <div className="flex gap-2 mb-3">
-                <Button
-                  variant={viewMode === "all" ? "accent" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("all")}
-                >
-                  All CCAs
-                </Button>
-                <Button
-                  variant={viewMode === "saved" ? "accent" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("saved")}
-                  disabled={!savedCCAs}
-                >
-                  Saved CCAs
-                </Button>
-              </div>
-
-              <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                {(viewMode === "all" ? filteredCCAs : filteredCCAs?.filter((cca) => savedCCAs?.includes(cca.id)))?.map((cca) => {
-                  const isAlreadyApplied = existingApplications?.includes(cca.id);
-                  return (
-                    <button
-                      key={cca.id}
-                      onClick={() => toggleCCA(cca.id)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-montserrat transition-colors ${
-                        isAlreadyApplied
-                          ? "bg-secondary/40 text-destructive cursor-not-allowed"
-                          : selectedCCAIds.has(cca.id)
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary hover:bg-secondary/80 text-foreground"
-                      }`}
-                      disabled={isAlreadyApplied}
-                    >
-                      {cca.name}
-                    </button>
-                  );
-                })}
-
-              </div>
-            </div>
-
-            {/* Conflicts warning */}
-            {conflicts.length > 0 && (
-              <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                  <h4 className="font-anton text-sm text-destructive">Time Clash Detected!</h4>
-                </div>
-                {Array.from(new Set(conflicts.map((c) => c.name))).map((name) => (
-                  <p key={name} className="text-xs text-destructive font-montserrat">• {name}</p>
+            <div className="bg-[#1e1e40] rounded-xl p-4 shadow-md flex flex-col gap-4">
+              
+              {/* View toggles stacked like a menu */}
+              <div className="flex flex-col overflow-hidden rounded-md border border-white/20">
+                {[
+                  { value: 'all', label: 'View All CCA' },
+                  { value: 'saved', label: 'View Saved CCA' },
+                  { value: 'filter', label: 'View By Filter' }
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setViewMode(option.value as 'all' | 'saved' | 'filter')}
+                    className={`relative flex items-center w-full px-4 py-3 text-sm font-medium transition-colors ${
+                      viewMode === option.value
+                        ? "bg-[#D91E41] text-white"
+                        : "bg-white text-muted-foreground hover:bg-gray-50"
+                    }`}
+                    style={viewMode !== option.value ? { borderBottom: '1px solid #eee' } : {}}
+                  >
+                    {viewMode === option.value && (
+                      <span
+                        className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-white border-b-[4px] border-b-transparent mr-2"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <span className={viewMode !== option.value ? 'ml-3' : ''}>
+                      {option.label}
+                    </span>
+                  </button>
                 ))}
               </div>
-            )}
 
-            {/* Submit button */}
-            <Button
-              variant="accent"
-              className="w-full font-montserrat"
-              size="lg"
-              disabled={selectedCCAIds.size === 0 || conflicts.length > 0}
-              onClick={() => {
-                if (conflicts.length > 0) {
-                  toast({
-                    title: "Can't Apply Due To Time Clashes",
-                    description: "Please resolve all time conflicts before applying",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-                submitMutation.mutate();
-              }}
-            >
-              <Send className="h-4 w-4" />
-              Apply Now
-            </Button>
+              {/* CCAs List container */}
+              <div className="bg-white rounded-lg p-3">
+                {/* Search - only in filter view or always? It seems to be under View By Filter, but we can keep it inside the container always just changing the filtered set */}
+                <div className="relative mb-3">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search CCAs..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 text-sm border-gray-300"
+                  />
+                </div>
+
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                  {(viewMode === "all" || viewMode === "filter" 
+                    ? filteredCCAs 
+                    : filteredCCAs?.filter((cca) => savedCCAs?.includes(cca.id))
+                  )?.map((cca) => {
+                    const isAlreadyApplied = existingApplications?.includes(cca.id);
+                    return (
+                      <button
+                        key={cca.id}
+                        onClick={() => toggleCCA(cca.id)}
+                        className={`w-full text-left px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
+                          isAlreadyApplied
+                            ? "bg-secondary/40 text-destructive cursor-not-allowed"
+                            : selectedCCAIds.has(cca.id)
+                            ? "bg-[#D91E41]/10 border border-[#D91E41]/30 text-[#D91E41]"
+                            : "bg-[#e5e5e5] hover:bg-[#d5d5d5] text-gray-800"
+                        }`}
+                        disabled={isAlreadyApplied}
+                      >
+                        {cca.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Conflicts warning */}
+              {conflicts.length > 0 && (
+                <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mt-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <h4 className="font-anton text-sm text-destructive">Time Clash Detected!</h4>
+                  </div>
+                  {Array.from(new Set(conflicts.map((c) => c.name))).map((name) => (
+                    <p key={name} className="text-xs text-destructive font-montserrat">• {name}</p>
+                  ))}
+                </div>
+              )}
+
+              {/* Submit button */}
+              <Button
+                className="w-full font-bold bg-[#D91E41] hover:bg-[#b01633] text-white py-6 mt-2"
+                size="lg"
+                disabled={selectedCCAIds.size === 0}
+                onClick={() => {
+                  if (conflicts.length > 0) {
+                    toast({
+                      title: "Time Clash Warning",
+                      description: "Applying despite time conflicts.",
+                      variant: "destructive",
+                    });
+                  }
+                  submitMutation.mutate();
+                }}
+              >
+                Apply Now
+              </Button>
+            </div>
           </div>
         </div>
       </div>
