@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +23,26 @@ const LoginPage: React.FC = () => {
     setLoading(true);
     try {
       await signIn(email, password);
-      navigate("/");
+      const {
+        data: { user: signedInUser },
+      } = await supabase.auth.getUser();
+
+      if (!signedInUser) {
+        navigate("/");
+        return;
+      }
+
+      const { data: preferenceRow, error } = await supabase
+        .from("user_preferences")
+        .select("id")
+        .eq("user_id", signedInUser.id)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      navigate(preferenceRow ? "/" : "/preferences");
     } catch (error: any) {
       toast({ title: "Login failed", description: error.message, variant: "destructive" });
     } finally {

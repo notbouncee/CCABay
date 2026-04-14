@@ -224,6 +224,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          commitment_level: number
+          created_at: string
+          goal_tags: string[]
+          hall_points_target: number
+          id: string
+          interest_categories: string[]
+          sync_timetable: boolean
+          updated_at: string
+          user_id: string
+          wants_hall_points: boolean
+        }
+        Insert: {
+          commitment_level?: number
+          created_at?: string
+          goal_tags?: string[]
+          hall_points_target?: number
+          id?: string
+          interest_categories?: string[]
+          sync_timetable?: boolean
+          updated_at?: string
+          user_id: string
+          wants_hall_points?: boolean
+        }
+        Update: {
+          commitment_level?: number
+          created_at?: string
+          goal_tags?: string[]
+          hall_points_target?: number
+          id?: string
+          interest_categories?: string[]
+          sync_timetable?: boolean
+          updated_at?: string
+          user_id?: string
+          wants_hall_points?: boolean
+        }
+        Relationships: []
+      }
       user_timetable: {
         Row: {
           cca_id: string | null
