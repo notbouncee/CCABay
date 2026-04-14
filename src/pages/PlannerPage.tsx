@@ -1,5 +1,14 @@
 // PlannerPage - Schedule planner with timetable and CCA selection
 import React, { useState, useMemo } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,6 +45,9 @@ const PlannerPage: React.FC = () => {
   const [selectedCCAIds, setSelectedCCAIds] = useState<Set<string>>(new Set());
   // View mode state for CCA list
   const [viewMode, setViewMode] = useState<'all' | 'saved' | 'filter'>('all');
+  // Dialog state for clash confirmation
+  const [showClashDialog, setShowClashDialog] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
 
   // Fetch user's timetable
   const { data: timetable } = useQuery({
@@ -232,9 +244,9 @@ const PlannerPage: React.FC = () => {
             <table className="w-full table-fixed border-collapse text-xs min-w-[600px]">
               <thead>
                 <tr>
-                  <th className="border border-border p-2 bg-primary text-primary-foreground font-anton w-20">TIME\DAY</th>
+                  <th className="border border-border p-2 bg-primary text-primary-foreground font-extrabold w-24">TIME\DAY</th>
                   {DAYS.map((day) => (
-                    <th key={day} className="border border-border p-2 bg-primary text-primary-foreground font-anton">{day}</th>
+                    <th key={day} className="border border-border p-2 bg-primary text-primary-foreground font-extrabold">{day}</th>
                   ))}
                 </tr>
               </thead>
@@ -310,7 +322,7 @@ const PlannerPage: React.FC = () => {
 
           {/* Right: CCA Selection */}
           <div className="space-y-4">
-            <div className="bg-[#1e1e40] rounded-xl p-4 shadow-md flex flex-col gap-4">
+            <div className="bg-[#1a2352] rounded-xl p-4 shadow-md flex flex-col gap-4">
               
               {/* View toggles stacked like a menu */}
               <div className="flex flex-col overflow-hidden rounded-md border border-white/20">
@@ -401,17 +413,47 @@ const PlannerPage: React.FC = () => {
                 disabled={selectedCCAIds.size === 0}
                 onClick={() => {
                   if (conflicts.length > 0) {
-                    toast({
-                      title: "Time Clash Warning",
-                      description: "Applying despite time conflicts.",
-                      variant: "destructive",
-                    });
+                    setShowClashDialog(true);
+                  } else {
+                    submitMutation.mutate();
                   }
-                  submitMutation.mutate();
                 }}
               >
                 Apply Now
               </Button>
+              {/* Clash Confirmation Dialog */}
+              <Dialog open={showClashDialog} onOpenChange={setShowClashDialog}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="font-medium text-xl">Clashes Detected!</DialogTitle>
+                    <DialogDescription>
+                      There are time clashes in your selection. Would you still like to proceed?
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="my-2">
+                    {Array.from(new Set(conflicts.map((c) => c.name))).map((name) => (
+                      <p key={name} className="text-xs text-destructive font-montserrat">• {name}</p>
+                    ))}
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowClashDialog(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      className="bg-[#D91E41] hover:bg-[#b01633] text-white"
+                      onClick={() => {
+                        setShowClashDialog(false);
+                        submitMutation.mutate();
+                      }}
+                    >
+                      Yes, Proceed
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
