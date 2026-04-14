@@ -219,19 +219,53 @@ const HomePage: React.FC = () => {
   ];
   const recommendedCcaReply =
     "Great choice! I can recommend CCAs for you. Share your interests, preferred commitment level, and available days, and I will suggest your best matches.";
+
+  const lowCommitmentScript = [
+    {
+      heading: "Low-Commitment CCAs You Can Consider:",
+      ccas: [
+        {
+          name: "NTU Toastmasters Club",
+          desc: "Improve your public speaking with flexible meeting schedules."
+        },
+        {
+          name: "NTU Board Games Society",
+          desc: "Casual weekly sessions, no mandatory attendance."
+        },
+        {
+          name: "NTU Photography Club",
+          desc: "Join outings when you’re free, no minimum participation."
+        },
+        {
+          name: "NTU Earthlink",
+          desc: "Participate in ad-hoc environmental events and projects."
+        },
+        {
+          name: "NTU Film Society",
+          desc: "Attend screenings and discussions at your own pace."
+        }
+      ],
+      tip: "Tip: Look for ‘ad-hoc’, ‘casual’, or ‘flexible’ CCAs, OR use Lifestyle filters in Explore Page!"
+    }
+  ];
   const isContempSearch = submittedFairSearchQuery.trim().toLowerCase() === "contemp{minated}";
 
+  const [showLowCommitmentScript, setShowLowCommitmentScript] = useState(false);
   useEffect(() => {
     if (selectedChatOption === "Recommend CCAs for me") {
       setShowRecommendedReply(false);
+      setShowLowCommitmentScript(false);
       const timer = window.setTimeout(() => {
         setShowRecommendedReply(true);
       }, 650);
-
       return () => window.clearTimeout(timer);
+    } else if (selectedChatOption === "Show low-commitment CCAs") {
+      setShowRecommendedReply(false);
+      setShowLowCommitmentScript(true);
+    } else {
+      setShowRecommendedReply(false);
+      setShowLowCommitmentScript(false);
     }
-
-    setShowRecommendedReply(false);
   }, [selectedChatOption]);
 
   const handleSendMessage = () => {
@@ -297,8 +331,9 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      <section className="mx-auto grid gap-8 px-4 py-10 md:px-[180px] md:grid-cols-[1.25fr_1fr]">
-        <div className="flex h-[480px] flex-col justify-center">
+      <section className="w-full py-10">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-10 px-4 md:grid-cols-[1.25fr_1fr] md:gap-12 md:px-8 lg:px-12 items-center">
+          <div className="flex h-[480px] flex-col justify-center mx-auto md:mx-0">
           <h2 className="font-anton text-[40px] text-primary">FIND YOUR MATCH HERE!</h2>
           <p className="mt-2 w-full max-w-[412px] font-montserrat text-[16px] font-normal text-[#000000]">
             Join the right CCA for you! Browse all the awesome clubs, swipe to find matches,
@@ -336,7 +371,7 @@ const HomePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex h-[480px] flex-col justify-center space-y-3">
+          <div className="flex h-[480px] flex-col justify-center space-y-3 mx-auto md:mx-0">
           {categories.map((cat) => (
             <Link
               key={cat.name}
@@ -356,6 +391,7 @@ const HomePage: React.FC = () => {
               </div>
             </Link>
           ))}
+        </div>
         </div>
       </section>
 
@@ -460,46 +496,47 @@ const HomePage: React.FC = () => {
 
         <div className="mt-8">
           <p className="mb-2 font-montserrat text-[clamp(18px,2.05vw,28px)] font-bold text-primary">CCAs Present Today</p>
-          <div className={showMoreCCAs ? "w-full space-y-3" : "flex flex-wrap items-center justify-start gap-4"}>
+          <div className={showMoreCCAs ? "w-full space-y-3" : "grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"}>
             {!showMoreCCAs && (
               <>
                 {trendPills.slice(0, 4).map((name, idx) => (
                   <button
                     key={`${name}-${idx}`}
                     type="button"
-                    className="h-[clamp(34px,3.35vw,46px)] w-[clamp(188px,18.4vw,252px)] rounded-full bg-[#FFDD00] text-center font-montserrat text-[clamp(12px,1.35vw,18px)] font-bold text-primary transition hover:brightness-95"
+                    className="h-[clamp(34px,3.35vw,46px)] w-full rounded-full bg-[#FFDD00] text-center font-montserrat text-[clamp(12px,1.35vw,18px)] font-bold text-primary transition hover:brightness-95"
                   >
                     {name}
                   </button>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => setShowMoreCCAs(true)}
-                  className="h-[clamp(34px,3.35vw,46px)] w-[clamp(110px,10.8vw,148px)] rounded-full bg-primary text-center font-montserrat text-[clamp(12px,1.35vw,18px)] font-bold text-white transition-colors duration-150 hover:bg-[#4C53C7] hover:text-[#FFDD00]"
-                >
-                  +12 More
-                </button>
+                {trendPills.length > 4 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowMoreCCAs(true)}
+                    className="h-[clamp(34px,3.35vw,46px)] w-full rounded-full bg-primary text-center font-montserrat text-[clamp(12px,1.35vw,18px)] font-bold text-white transition-colors duration-150 hover:bg-[#4C53C7] hover:text-[#FFDD00]"
+                  >
+                    +{trendPills.length - 4} More
+                  </button>
+                )}
               </>
             )}
 
-            {showMoreCCAs &&
-              expandedPillRows.map((row, rowIdx) => (
-                <div key={`expanded-row-${rowIdx}`} className="grid w-full grid-cols-5 gap-4">
-                  {row.map((name, pillIdx) => (
-                    <button
-                      key={`expanded-${rowIdx}-${pillIdx}-${name}`}
-                      type="button"
-                      className={`h-[clamp(34px,3.35vw,46px)] w-full rounded-full text-center font-montserrat text-[clamp(12px,1.35vw,18px)] font-bold transition ${
-                        rowIdx % 2 === 0
-                          ? "bg-[#FFDD00] text-primary hover:brightness-95"
-                          : "bg-[#8C8C8C] text-white hover:brightness-95"
-                      }`}
-                    >
-                      {name}
-                    </button>
-                  ))}
-                </div>
-              ))}
+            {showMoreCCAs && (
+              <div className="grid w-full grid-cols-5 gap-4">
+                {trendPills.map((name, idx) => (
+                  <button
+                    key={`expanded-${idx}-${name}`}
+                    type="button"
+                    className={`h-[clamp(34px,3.35vw,46px)] w-full rounded-full text-center font-montserrat text-[clamp(12px,1.35vw,18px)] font-bold transition ${
+                      idx % 2 === 0
+                        ? "bg-[#FFDD00] text-primary hover:brightness-95"
+                        : "bg-[#8C8C8C] text-white hover:brightness-95"
+                    }`}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -519,52 +556,69 @@ const HomePage: React.FC = () => {
           </div>
 
           <div className="flex h-[calc(100%-56px)] flex-col p-3">
-            <div className="h-[71px] w-[304px] rounded-[24px] rounded-bl-[8px] bg-white p-[14px] font-montserrat text-[12px] leading-[1.25] text-[#3F3F3F]">
-              Hi, I'm CCAI ("<strong>Kai</strong>") 👋
-              <br />
-              Tell me what you're looking for, and I'll help you find CCAs that fit you.
-            </div>
+            <div className="flex-1 overflow-y-auto">
+              <div className="h-[71px] w-[304px] rounded-[24px] rounded-bl-[8px] bg-white p-[14px] font-montserrat text-[12px] leading-[1.25] text-[#3F3F3F]">
+                Hi, I'm CCAI ("<strong>Kai</strong>") 👋
+                <br />
+                Tell me what you're looking for, and I'll help you find CCAs that fit you.
+              </div>
 
-            <div className="mt-3 w-fit max-w-[72%] rounded-[24px] rounded-bl-[8px] bg-white px-[14px] py-[14px] font-montserrat text-[12px] leading-[1.25] text-[#3F3F3F]">
-              What can I help you with today?
-            </div>
+              <div className="mt-3 w-fit max-w-[72%] rounded-[24px] rounded-bl-[8px] bg-white px-[14px] py-[14px] font-montserrat text-[12px] leading-[1.25] text-[#3F3F3F]">
+                What can I help you with today?
+              </div>
 
-            <div className={`${selectedChatOption ? "mt-3" : "mt-auto"} space-y-2 pb-2`}>
-              {(selectedChatOption ? [selectedChatOption] : chatOptions).map((option) => {
-                const isSelected = selectedChatOption === option;
+              <div className={`${selectedChatOption ? "mt-3" : "mt-auto"} space-y-2 pb-2`}>
+                {(selectedChatOption ? [selectedChatOption] : chatOptions).map((option) => {
+                  const isSelected = selectedChatOption === option;
 
-                return (
-                  <div key={option} className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedChatOption(option)}
-                      className={`rounded-[24px] rounded-br-[8px] px-[14px] py-[14px] font-montserrat text-[12px] leading-[1.25] transition-colors duration-150 ${
-                        isSelected
-                          ? "bg-[#D71440] font-bold text-white"
-                          : "border border-dashed border-black bg-transparent font-normal text-[#3F3F3F] hover:border-white hover:bg-[#D71440] hover:text-white"
-                      }`}
-                    >
-                      {option}
-                    </button>
+                  return (
+                    <div key={option} className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedChatOption(option)}
+                        className={`rounded-[24px] rounded-br-[8px] px-[14px] py-[14px] font-montserrat text-[12px] leading-[1.25] transition-colors duration-150 ${
+                          isSelected
+                            ? "bg-[#D71440] font-bold text-white"
+                            : "border border-dashed border-black bg-transparent font-normal text-[#3F3F3F] hover:border-white hover:bg-[#D71440] hover:text-white"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    </div>
+                  );
+                })}
+
+                {showRecommendedReply && (
+                  <div className="pt-1">
+                    <div className="w-[304px] rounded-[24px] rounded-bl-[8px] bg-white px-[14px] py-[14px] font-montserrat text-[12px] leading-[1.25] text-[#3F3F3F]">
+                      {recommendedCcaReply}
+                    </div>
                   </div>
-                );
-              })}
-
-              {showRecommendedReply && (
-                <div className="pt-1">
-                  <div className="w-[304px] rounded-[24px] rounded-bl-[8px] bg-white px-[14px] py-[14px] font-montserrat text-[12px] leading-[1.25] text-[#3F3F3F]">
-                    {recommendedCcaReply}
+                )}
+                {showLowCommitmentScript && (
+                  <div className="pt-1">
+                    <div className="w-[320px] rounded-[24px] rounded-bl-[8px] bg-white px-[18px] py-[16px] font-montserrat text-[13px] leading-[1.5] text-[#23245B]">
+                      <div className="font-bold text-[15px] mb-2">{lowCommitmentScript[0].heading}</div>
+                      <ul className="mb-2 pl-4 list-disc">
+                        {lowCommitmentScript[0].ccas.map((cca) => (
+                          <li key={cca.name} className="mb-1">
+                            <span className="font-semibold">{cca.name}:</span> {cca.desc}
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="mt-2 text-[12px] text-[#D71440] font-semibold">{lowCommitmentScript[0].tip}</div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {sentMessages.map((message, index) => (
-                <div key={`sent-msg-${index}`} className="flex justify-end pt-1">
-                  <div className="max-w-[72%] rounded-[24px] rounded-br-[8px] bg-[#D71440] px-[14px] py-[14px] font-montserrat text-[12px] font-normal leading-[1.25] text-white">
-                    {message}
+                {sentMessages.map((message, index) => (
+                  <div key={`sent-msg-${index}`} className="flex justify-end pt-1">
+                    <div className="max-w-[72%] rounded-[24px] rounded-br-[8px] bg-[#D71440] px-[14px] py-[14px] font-montserrat text-[12px] font-normal leading-[1.25] text-white">
+                      {message}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             <div className={`${selectedChatOption ? "mt-auto" : "mt-1"} flex h-[54px] w-full items-center rounded-full bg-black pl-5 pr-3`}>

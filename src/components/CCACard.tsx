@@ -124,7 +124,10 @@ const CCACard: React.FC<CCACardProps> = ({ cca, isSaved = false, onToggleSave, i
 
   const cardContent = (
     <>
-      <article className="overflow-hidden rounded-[20px] bg-white transition-all duration-200 group-hover:-translate-y-0.5" style={{ boxShadow: "0 0 10px 0 rgba(0,0,0,0.10)" }}>
+      <article
+        className="overflow-hidden rounded-[20px] bg-white transition-all duration-200 group-hover:-translate-y-0.5 max-w-[500px] max-h-[500px] w-full h-full"
+        style={{ boxShadow: "0 0 10px 0 rgba(0,0,0,0.10)" }}
+      >
         <div className="relative h-[148px] overflow-hidden bg-[#E6E6E6]">
           {cca.image_url ? (
             <img src={cca.image_url} alt={cca.name} className="h-full w-full object-cover" />
