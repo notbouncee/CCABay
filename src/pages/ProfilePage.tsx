@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ import { User, FileText, Save } from "lucide-react";
 // Profile page showing user info and application status
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
@@ -128,6 +130,12 @@ const ProfilePage: React.FC = () => {
             >
               <Save className="h-4 w-4" />
               {editing ? "Save" : "Edit"}
+            </Button>
+          </div>
+
+          <div className="mb-4">
+            <Button variant="outline" size="sm" onClick={() => navigate("/preferences")}>
+              Edit Preferences
             </Button>
           </div>
 

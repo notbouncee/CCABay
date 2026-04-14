@@ -16,6 +16,7 @@ import MatchMePage from "@/pages/MatchMePage";
 import PlannerPage from "@/pages/PlannerPage";
 import SavedCCAsPage from "@/pages/SavedCCAsPage";
 import ProfilePage from "@/pages/ProfilePage";
+import PreferencePage from "./pages/PreferencePage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
 
             {/* Protected routes with navbar */}
             <Route path="/matchme" element={<AppLayout><ProtectedRoute><MatchMePage /></ProtectedRoute></AppLayout>} />
+            <Route path="/preferences" element={<AppLayout><ProtectedRoute><PreferencePage /></ProtectedRoute></AppLayout>} />
             <Route path="/planner" element={<AppLayout><ProtectedRoute><PlannerPage /></ProtectedRoute></AppLayout>} />
             <Route path="/saved" element={<AppLayout><ProtectedRoute><SavedCCAsPage /></ProtectedRoute></AppLayout>} />
             <Route path="/profile" element={<AppLayout><ProtectedRoute><ProfilePage /></ProtectedRoute></AppLayout>} />
